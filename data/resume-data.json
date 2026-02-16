@@ -1,0 +1,118 @@
+{
+    "personal": {
+        "name": "Kaveri Sharma",
+        "title": "Computer Science Student",
+        "email": "kaveri.sharma@example.com",
+        "phone": "+91 XXXXXXXXXX",
+        "location": "Bangalore, India",
+        "linkedin": "linkedin.com/in/kaveri-sharma",
+        "github": "github.com/kaverisharma"
+    },
+    "summary": "Passionate Computer Science student with expertise in full-stack development, data structures, and algorithms. Experienced in building scalable web applications and working with modern technologies.",
+    "experience": [
+        {
+            "title": "Software Engineering Intern",
+            "company": "Tech Company",
+            "duration": "Jun 2025 - Aug 2025",
+            "description": [
+                "Developed and deployed full-stack web applications using React and Node.js",
+                "Collaborated with cross-functional teams to deliver features on time",
+                "Optimized database queries improving performance by 30%"
+            ]
+        },
+        {
+            "title": "Research Assistant",
+            "company": "PES University",
+            "duration": "Jan 2025 - Present",
+            "description": [
+                "Conducted research on machine learning algorithms",
+                "Published findings in university journal",
+                "Mentored junior students in programming fundamentals"
+            ]
+        }
+    ],
+    "education": [
+        {
+            "degree": "B.Tech in Computer Science",
+            "institution": "PES University",
+            "duration": "2023 - 2027",
+            "gpa": "9.2/10",
+            "highlights": [
+                "Relevant Coursework: Data Structures, Algorithms, Database Systems, Web Development",
+                "Dean's List - All Semesters"
+            ]
+        }
+    ],
+    "projects": [
+        {
+            "name": "Customer Relationship Management System",
+            "tech": "React, Node.js, MongoDB, Express",
+            "description": "Built a full-featured CRM platform with user authentication, data analytics, and real-time updates",
+            "highlights": [
+                "Implemented JWT-based authentication",
+                "Created interactive dashboards with Chart.js",
+                "Deployed on AWS with CI/CD pipeline"
+            ]
+        },
+        {
+            "name": "Cloth Simulation Engine",
+            "tech": "C++, OpenGL, Physics Engine",
+            "description": "Developed a real-time cloth physics simulation using Verlet integration",
+            "highlights": [
+                "Implemented collision detection and response",
+                "Optimized rendering for 60 FPS performance",
+                "Added interactive controls for user manipulation"
+            ]
+        },
+        {
+            "name": "Event Management Platform",
+            "tech": "Python, Flask, PostgreSQL",
+            "description": "Created a platform for managing university events and registrations",
+            "highlights": [
+                "Handled 500+ concurrent users during peak registration",
+                "Automated email notifications and confirmations",
+                "Generated detailed analytics reports"
+            ]
+        }
+    ],
+    "skills": {
+        "languages": [
+            "Python",
+            "JavaScript",
+            "C++",
+            "Java",
+            "SQL"
+        ],
+        "frameworks": [
+            "React",
+            "Node.js",
+            "Express",
+            "Flask",
+            "Next.js"
+        ],
+        "tools": [
+            "Git",
+            "Docker",
+            "AWS",
+            "MongoDB",
+            "PostgreSQL"
+        ],
+        "concepts": [
+            "Data Structures",
+            "Algorithms",
+            "OOP",
+            "REST APIs",
+            "Agile"
+        ]
+    },
+    "certifications": [
+        "AWS Cloud Practitioner",
+        "Full Stack Web Development - Coursera"
+    ],
+    "funFacts": [
+        "🎮 Love playing retro pixel-art games",
+        "🎨 Enjoy creating digital art and animations",
+        "📚 Reading sci-fi novels in free time",
+        "🏃 Marathon runner - completed 3 half-marathons"
+    ]
+}

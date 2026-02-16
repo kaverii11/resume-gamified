@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaveri Sharma - Interactive Resume</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading-screen">
+            <div class="pixel-loader"></div>
+            <p class="pixel-text">LOADING CITY...</p>
+        </div>
+        
+        <div id="hud">
+            <div class="hud-item">
+                <span class="pixel-text">KAVERI SHARMA</span>
+            </div>
+            <div class="hud-item">
+                <span class="pixel-text">Use ← → ↑ ↓ or WASD to move</span>
+            </div>
+            <div class="hud-item">
+                <span class="pixel-text">Press SPACE to interact</span>
+            </div>
+            <button id="mute-btn" class="pixel-btn">🔊</button>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Mobile Controls -->
+        <div id="mobile-controls">
+            <div class="dpad">
+                <button class="dpad-btn up" data-key="up">▲</button>
+                <button class="dpad-btn down" data-key="down">▼</button>
+                <button class="dpad-btn left" data-key="left">◄</button>
+                <button class="dpad-btn right" data-key="right">►</button>
+            </div>
+            <button class="action-btn" data-key="space">INTERACT</button>
+        </div>
+
+        <!-- Modal System -->
+        <div id="modal-overlay" class="hidden">
+            <div id="modal-container">
+                <div class="modal-header">
+                    <h2 id="modal-title" class="pixel-text"></h2>
+                    <button id="modal-close" class="pixel-btn close-btn">✕</button>
+                </div>
+                <div id="modal-content" class="modal-body"></div>
+            </div>
+        </div>
+
+        <!-- Interaction Prompt -->
+        <div id="interaction-prompt" class="hidden">
+            <span class="pixel-text">Press SPACE</span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

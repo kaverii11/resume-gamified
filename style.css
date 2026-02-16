@@ -1,0 +1,416 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --neon-pink: #ff006e;
+    --neon-cyan: #00f5ff;
+    --neon-yellow: #ffea00;
+    --neon-purple: #b967ff;
+    --dark-bg: #0a0e27;
+    --dark-blue: #1a1f3a;
+    --dark-purple: #2d1b4e;
+}
+
+body {
+    font-family: 'Press Start 2P', cursive;
+    background: linear-gradient(135deg, var(--dark-bg) 0%, var(--dark-purple) 100%);
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    height: 100vh;
+    max-height: 800px;
+    background: var(--dark-bg);
+    border: 4px solid var(--neon-cyan);
+    box-shadow: 0 0 20px var(--neon-cyan), inset 0 0 20px rgba(0, 245, 255, 0.1);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* Loading Screen */
+#loading-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--dark-bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.5s;
+}
+
+#loading-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pixel-loader {
+    width: 64px;
+    height: 64px;
+    border: 4px solid var(--neon-cyan);
+    border-top: 4px solid var(--neon-pink);
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* HUD */
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(180deg, rgba(10, 14, 39, 0.95) 0%, transparent 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.hud-item {
+    background: rgba(0, 245, 255, 0.1);
+    border: 2px solid var(--neon-cyan);
+    padding: 8px 12px;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+}
+
+.pixel-text {
+    font-size: 10px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 5px var(--neon-cyan);
+    line-height: 1.5;
+}
+
+.pixel-btn {
+    font-family: 'Press Start 2P', cursive;
+    background: var(--dark-blue);
+    border: 2px solid var(--neon-pink);
+    color: var(--neon-pink);
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 10px;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px rgba(255, 0, 110, 0.3);
+}
+
+.pixel-btn:hover {
+    background: var(--neon-pink);
+    color: var(--dark-bg);
+    box-shadow: 0 0 20px var(--neon-pink);
+    transform: scale(1.05);
+}
+
+.pixel-btn:active {
+    transform: scale(0.95);
+}
+
+#mute-btn {
+    font-size: 16px;
+}
+
+/* Canvas */
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* Mobile Controls */
+#mobile-controls {
+    display: none;
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    padding: 0 20px;
+    justify-content: space-between;
+    align-items: flex-end;
+    z-index: 100;
+}
+
+.dpad {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.dpad-btn {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 245, 255, 0.2);
+    border: 2px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+}
+
+.dpad-btn:active {
+    background: var(--neon-cyan);
+    color: var(--dark-bg);
+    box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+.dpad-btn.up { top: 0; left: 40px; }
+.dpad-btn.down { bottom: 0; left: 40px; }
+.dpad-btn.left { top: 40px; left: 0; }
+.dpad-btn.right { top: 40px; right: 0; }
+
+.action-btn {
+    font-family: 'Press Start 2P', cursive;
+    background: rgba(255, 0, 110, 0.2);
+    border: 2px solid var(--neon-pink);
+    color: var(--neon-pink);
+    padding: 15px 25px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px rgba(255, 0, 110, 0.3);
+}
+
+.action-btn:active {
+    background: var(--neon-pink);
+    color: var(--dark-bg);
+    box-shadow: 0 0 20px var(--neon-pink);
+}
+
+/* Modal System */
+#modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 14, 39, 0.9);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    transition: opacity 0.3s;
+}
+
+#modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#modal-container {
+    background: var(--dark-blue);
+    border: 4px solid var(--neon-cyan);
+    box-shadow: 0 0 30px var(--neon-cyan), inset 0 0 20px rgba(0, 245, 255, 0.1);
+    max-width: 90%;
+    max-height: 80%;
+    width: 600px;
+    display: flex;
+    flex-direction: column;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    background: linear-gradient(90deg, var(--neon-cyan) 0%, var(--neon-purple) 100%);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--neon-pink);
+}
+
+#modal-title {
+    font-size: 14px;
+    color: var(--dark-bg);
+    text-shadow: none;
+}
+
+.close-btn {
+    background: var(--dark-bg);
+    border: 2px solid var(--neon-pink);
+    color: var(--neon-pink);
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: 500px;
+    color: var(--neon-cyan);
+    font-size: 10px;
+    line-height: 1.8;
+}
+
+.modal-body h3 {
+    color: var(--neon-pink);
+    margin: 15px 0 10px 0;
+    font-size: 12px;
+    text-shadow: 0 0 5px var(--neon-pink);
+}
+
+.modal-body p {
+    margin-bottom: 10px;
+}
+
+.modal-body ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.modal-body li {
+    margin-bottom: 8px;
+    padding-left: 15px;
+    position: relative;
+}
+
+.modal-body li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: var(--neon-yellow);
+}
+
+.skill-tag {
+    display: inline-block;
+    background: rgba(255, 0, 110, 0.2);
+    border: 1px solid var(--neon-pink);
+    padding: 4px 8px;
+    margin: 4px;
+    font-size: 8px;
+    color: var(--neon-pink);
+    box-shadow: 0 0 5px rgba(255, 0, 110, 0.3);
+}
+
+.section-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+/* Interaction Prompt */
+#interaction-prompt {
+    position: absolute;
+    bottom: 150px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 0, 110, 0.9);
+    border: 2px solid var(--neon-pink);
+    padding: 10px 20px;
+    box-shadow: 0 0 20px var(--neon-pink);
+    animation: bounce 0.5s infinite alternate;
+    z-index: 50;
+}
+
+#interaction-prompt.hidden {
+    display: none;
+}
+
+@keyframes bounce {
+    from { transform: translateX(-50%) translateY(0); }
+    to { transform: translateX(-50%) translateY(-10px); }
+}
+
+/* Scrollbar Styling */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--neon-cyan);
+    box-shadow: 0 0 5px var(--neon-cyan);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .pixel-text {
+        font-size: 8px;
+    }
+    
+    #hud {
+        padding: 10px;
+    }
+    
+    .hud-item {
+        padding: 6px 10px;
+    }
+    
+    #mobile-controls {
+        display: flex;
+    }
+    
+    #modal-container {
+        width: 95%;
+        max-height: 70%;
+    }
+    
+    #modal-title {
+        font-size: 10px;
+    }
+    
+    .modal-body {
+        font-size: 8px;
+        padding: 15px;
+    }
+    
+    .modal-body h3 {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hud-item span {
+        font-size: 6px;
+    }
+    
+    .pixel-btn {
+        font-size: 8px;
+        padding: 6px 10px;
+    }
+}
