@@ -36,21 +36,33 @@ const T = {
 //   Row 3: park/grass, tree, bench
 // We'll draw each tile as a 32×32 slice from the sheet.
 // The sheet is 640×640 (approx). We map tile IDs to src coords:
-const TILE_SRC = {
-    // [srcX, srcY, srcW, srcH] in the tileset image (px)
-    [T.ROAD_H]: [0, 384, 160, 96],   // horizontal road strip
-    [T.ROAD_V]: [160, 384, 96, 96],   // vertical road strip
-    [T.CROSS]: [256, 384, 128, 96],   // intersection
-    [T.SIDE]: [384, 384, 160, 96],   // sidewalk
-    [T.PARK]: [0, 480, 160, 96],   // park/grass
-    [T.BLD_N1]: [0, 0, 192, 192],   // night skyscraper 1
-    [T.BLD_N2]: [192, 0, 192, 192],   // night skyscraper 2
-    [T.BLD_N3]: [384, 0, 192, 192],   // night skyscraper 3
-    [T.BLD_D1]: [0, 192, 128, 192],   // day skyscraper 1
-    [T.BLD_D2]: [128, 192, 128, 192],   // day skyscraper 2
-    [T.BLD_D3]: [256, 192, 128, 192],   // day skyscraper 3
-    [T.TREE]: [0, 480, 96, 128],   // tree
-    [T.BENCH]: [96, 480, 96, 64],   // bench
+// New sprite sheet layout (city_day.png / city_night.png):
+// Both sheets share the SAME grid layout — 5 columns × 3 rows of buildings,
+// plus a 4th row of environment tiles.
+//
+// Row 0: University | Office | House | Lab | Post Office
+// Row 1: Cafe | City Hall | Library | Burger Joint | (empty)
+// Row 2: Grass | Road | Tree | Bench | Sidewalk
+//
+// Tile ID → [col, row] in the sheet (each cell = sheetW/5 × sheetH/3)
+const TILE_GRID_POS = {
+    // Resume buildings (row 0)
+    [T.BLD_N1]: [0, 0],   // University / Data Center
+    [T.BLD_N2]: [1, 0],   // Office / Neon Skyscraper
+    [T.BLD_N3]: [2, 0],   // House / Cozy House Night
+    [T.BLD_D1]: [3, 0],   // Lab / Tech Lab
+    [T.BLD_D2]: [4, 0],   // Post Office
+    // Flavor buildings (row 1)
+    [T.BLD_D3]: [0, 1],   // Cafe / Noodle Bar
+    // Environment (row 2)
+    [T.PARK]: [0, 2],   // Grass
+    [T.ROAD_H]: [1, 2],   // Road
+    [T.TREE]: [2, 2],   // Tree
+    [T.BENCH]: [3, 2],   // Bench
+    [T.SIDE]: [4, 2],   // Sidewalk
+    // Road-V and cross use same road tile (rotated visually via fallback)
+    [T.ROAD_V]: [1, 2],
+    [T.CROSS]: [1, 2],
 };
 
 // ── TileMap (40 cols × 25 rows) ──────────────────────────────
@@ -142,8 +154,10 @@ const gameState = {
     resumeData: null,
     isMuted: false,
     nearestHotspot: null,
-    isDay: false,            // day/night toggle
+    gameTime: 600,           // 0–2399 (HHMM-style, starts at 06:00)
+    isDay: false,            // derived from gameTime, kept for compat
     time: 0,                 // frame counter for animations
+    dayNightFrameAcc: 0,     // accumulator for time progression
 };
 
 // Canvas
@@ -197,6 +211,47 @@ function updateCamera() {
     cam.y = Math.max(0, Math.min(cam.y, WORLD_H - canvas.height));
 }
 
+// ── Day / Night helpers ──────────────────────────────────────
+function isNightTime() {
+    const t = gameState.gameTime;
+    // Night = 18:00 (1800) to 06:00 (600), wrapping around midnight
+    return t >= 1800 || t < 600;
+}
+
+// Returns a 0-1 blend factor: 0=full day, 1=full night
+function nightBlend() {
+    const t = gameState.gameTime;
+    // Dusk: 1700-1900  →  blend 0→1
+    if (t >= 1700 && t < 1900) return (t - 1700) / 200;
+    // Dawn: 500-700    →  blend 1→0
+    if (t >= 500 && t < 700) return 1 - (t - 500) / 200;
+    return isNightTime() ? 1 : 0;
+}
+
+// ── Day/Night Cycle Renderer ──────────────────────────────────
+function renderDayNightCycle() {
+    const blend = nightBlend();
+    if (blend <= 0) return;
+
+    // Night: dark blue overlay over the whole scene
+    ctx.save();
+    ctx.globalAlpha = blend * 0.70;
+    ctx.fillStyle = 'rgba(10, 14, 39, 1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+}
+
+// Day warm tint (applied before night overlay so they don't stack)
+function renderDayTint() {
+    const blend = 1 - nightBlend();
+    if (blend <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = blend * 0.10;
+    ctx.fillStyle = 'rgba(255, 200, 100, 1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+}
+
 // ── Tile Rendering ────────────────────────────────────────────
 // Fallback solid-colour palette when tileset image isn't loaded
 const TILE_COLORS = {
@@ -208,9 +263,27 @@ const TILE_COLORS = {
     [T.TREE]: '#1a4a1a', [T.BENCH]: '#3a2a1a',
 };
 
+// Map a base tile ID to its day/night variant
+function resolveVariant(tileId) {
+    const night = isNightTime();
+    // Night → use neon building tiles (5-7); Day → use plain tiles (8-10)
+    if (night) {
+        if (tileId === T.BLD_D1) return T.BLD_N1;
+        if (tileId === T.BLD_D2) return T.BLD_N2;
+        if (tileId === T.BLD_D3) return T.BLD_N3;
+    } else {
+        if (tileId === T.BLD_N1) return T.BLD_D1;
+        if (tileId === T.BLD_N2) return T.BLD_D2;
+        if (tileId === T.BLD_N3) return T.BLD_D3;
+    }
+    return tileId;
+}
+
 function drawTileMap() {
     const cam = gameState.camera;
-    const img = assets.images['tileset'];
+    // Pick the correct sheet based on current time
+    const sheetKey = isNightTime() ? 'cityNight' : 'cityDay';
+    const img = assets.images[sheetKey];
 
     // Visible tile range
     const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE));
@@ -220,21 +293,17 @@ function drawTileMap() {
 
     for (let row = startRow; row <= endRow; row++) {
         for (let col = startCol; col <= endCol; col++) {
-            const tileId = TILE_MAP[row][col];
+            const tileId = TILE_MAP[row][col];  // no resolveVariant needed — sheet handles it
             const dx = col * TILE_SIZE - cam.x;
             const dy = row * TILE_SIZE - cam.y;
 
-            if (img) {
-                // Draw from tileset — use a simple grid mapping
-                // The tileset image has tiles arranged in a visual grid.
-                // We use a proportional slice approach: divide the image into
-                // a 6-col × 5-row grid and pick the right cell.
-                const tileCol = tileId % 6;
-                const tileRow = Math.floor(tileId / 6);
-                const sw = img.naturalWidth / 6;
-                const sh = img.naturalHeight / 5;
+            if (img && TILE_GRID_POS[tileId] !== undefined) {
+                // New sheet: 5-col × 3-row grid of building sprites
+                const [gc, gr] = TILE_GRID_POS[tileId];
+                const sw = img.naturalWidth / 5;
+                const sh = img.naturalHeight / 3;
                 ctx.drawImage(img,
-                    tileCol * sw, tileRow * sh, sw, sh,
+                    gc * sw, gr * sh, sw, sh,
                     dx, dy, TILE_SIZE, TILE_SIZE
                 );
             } else {
@@ -485,12 +554,15 @@ function setupInputHandlers() {
         });
     }
 
-    // Day/Night toggle
+    // Day/Night toggle — jump forward 6 in-game hours for quick testing
     const dayBtn = document.getElementById('daynight-btn');
     if (dayBtn) {
         dayBtn.addEventListener('click', () => {
-            gameState.isDay = !gameState.isDay;
-            dayBtn.textContent = gameState.isDay ? '☀️' : '🌙';
+            gameState.gameTime = (gameState.gameTime + 600) % 2400;
+            // Normalise minutes
+            const h = Math.floor(gameState.gameTime / 100);
+            const m = gameState.gameTime % 100;
+            if (m >= 60) gameState.gameTime = ((h + 1) % 24) * 100;
         });
     }
 }
@@ -594,26 +666,33 @@ function toggleMute() {
 
 // ── Background (sky + stars) ──────────────────────────────────
 function drawBackground() {
-    const isDay = gameState.isDay;
+    const blend = nightBlend();
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    if (isDay) {
-        grad.addColorStop(0, '#1a3a6e');
-        grad.addColorStop(1, '#2a5a9e');
-    } else {
-        grad.addColorStop(0, '#0a0e27');
-        grad.addColorStop(1, '#1a1f3a');
-    }
+
+    // Interpolate sky colours: day (blue) ↔ night (dark navy)
+    const r0 = Math.round(26 + (10 - 26) * blend);  // top R
+    const g0 = Math.round(58 + (14 - 58) * blend);  // top G
+    const b0 = Math.round(110 + (39 - 110) * blend);  // top B
+    const r1 = Math.round(42 + (26 - 42) * blend);  // bot R
+    const g1 = Math.round(90 + (31 - 90) * blend);  // bot G
+    const b1 = Math.round(158 + (58 - 158) * blend);  // bot B
+
+    grad.addColorStop(0, `rgb(${r0},${g0},${b0})`);
+    grad.addColorStop(1, `rgb(${r1},${g1},${b1})`);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (!isDay) {
-        // Stars
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    // Stars — fade in at night
+    if (blend > 0.2) {
+        ctx.save();
+        ctx.globalAlpha = (blend - 0.2) / 0.8 * 0.75;
+        ctx.fillStyle = '#ffffff';
         for (let i = 0; i < 80; i++) {
             const x = (i * 137 + gameState.camera.x * 0.05) % canvas.width;
             const y = (i * 211 + gameState.camera.y * 0.05) % canvas.height;
             ctx.fillRect(x, y, 1.5, 1.5);
         }
+        ctx.restore();
     }
 }
 
@@ -629,17 +708,52 @@ function drawHUD() {
     ctx.drawImage(hudImg, icon * iconW, 0, iconW, iconH, canvas.width - 52, 8, 32, 32);
 }
 
+// ── Time Progression ─────────────────────────────────────────
+// 1 real second = 10 in-game minutes → at 60fps: 10/60 ≈ 0.1667 min/frame
+// gameTime is stored as integer minutes (0-2399)
+const GAME_MINS_PER_FRAME = 10 / 60;
+
+function updateGameTime() {
+    gameState.dayNightFrameAcc += GAME_MINS_PER_FRAME;
+    if (gameState.dayNightFrameAcc >= 1) {
+        const mins = Math.floor(gameState.dayNightFrameAcc);
+        gameState.dayNightFrameAcc -= mins;
+        gameState.gameTime = (gameState.gameTime + mins) % 2400;
+        // Keep hours valid (skip invalid minute values like x60+)
+        const h = Math.floor(gameState.gameTime / 100);
+        const m = gameState.gameTime % 100;
+        if (m >= 60) {
+            gameState.gameTime = ((h + 1) % 24) * 100;
+        }
+    }
+    // Sync legacy isDay flag
+    gameState.isDay = !isNightTime();
+    // Update HUD clock display
+    const clockEl = document.getElementById('game-clock');
+    if (clockEl) {
+        const h = Math.floor(gameState.gameTime / 100).toString().padStart(2, '0');
+        const m = (gameState.gameTime % 100).toString().padStart(2, '0');
+        clockEl.textContent = `${h}:${m}`;
+    }
+    // Update day/night button icon
+    const btn = document.getElementById('daynight-btn');
+    if (btn) btn.textContent = isNightTime() ? '🌙' : '☀️';
+}
+
 // ── Game Loop ─────────────────────────────────────────────────
 function gameLoop() {
     gameState.time++;
+    updateGameTime();
     updatePlayer();
     updateCamera();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBackground();
     drawTileMap();
+    renderDayTint();        // warm day tint over tiles
     drawHotspots();
     drawPlayer();
+    renderDayNightCycle();  // dark night overlay (drawn after sprites so it dims everything)
     drawHUD();
 
     requestAnimationFrame(gameLoop);
@@ -652,7 +766,9 @@ async function init() {
     // Load all assets (gracefully continue even if some fail)
     try {
         await assets.loadAll({
-            tileset: 'assets/city_tileset.png',
+            cityDay: 'assets/city_day.png',
+            cityNight: 'assets/city_night.png',
+            characterPortraits: 'assets/character_portraits.png',
             playerMale: 'assets/character_sprites_male.png',
             playerFemale: 'assets/character_sprites_female.png',
             hud: 'assets/ui_hud_elements.png',
