@@ -2,11 +2,11 @@
     "personal": {
         "name": "Kaveri Sharma",
         "title": "Computer Science Student",
-        "email": "kaveri.sharma@example.com",
-        "phone": "+91 XXXXXXXXXX",
+        "email": "[EMAIL_ADDRESS]",
+        "phone": "+91 9560075023",
         "location": "Bangalore, India",
         "linkedin": "linkedin.com/in/kaveri-sharma",
-        "github": "github.com/kaverisharma"
+        "github": "https://github.com/kaverii11"
     },
     "summary": "Passionate Computer Science student with expertise in full-stack development, data structures, and algorithms. Experienced in building scalable web applications and working with modern technologies.",
     "experience": [
@@ -113,6 +113,6 @@
         "🎮 Love playing retro pixel-art games",
         "🎨 Enjoy creating digital art and animations",
         "📚 Reading sci-fi novels in free time",
-        "🏃 Marathon runner - completed 3 half-marathons"
+        "🏃 Basketball player"
     ]
 }
