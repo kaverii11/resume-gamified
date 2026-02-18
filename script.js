@@ -3,13 +3,14 @@
 // ============================================================
 
 // ── Constants ────────────────────────────────────────────────
-const TILE_SIZE = 64;   // large tiles → buildings look great
+const TILE_SIZE = 48;   // world-space px per tile
+const ZOOM = 2;    // pixel scale — chunky retro look
 const MAP_COLS = 30;
 const MAP_ROWS = 20;
-const WORLD_W = MAP_COLS * TILE_SIZE;   // 1920
-const WORLD_H = MAP_ROWS * TILE_SIZE;   // 1280
+const WORLD_W = MAP_COLS * TILE_SIZE;   // 1440
+const WORLD_H = MAP_ROWS * TILE_SIZE;   // 960
 const PLAYER_SPEED = 3;
-const INTERACT_DIST = 110;  // px in world-space
+const INTERACT_DIST = 90;  // px in world-space
 
 // ── Tile IDs ─────────────────────────────────────────────────
 const T = {
@@ -165,6 +166,11 @@ const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = 960;
 canvas.height = 640;
+// Logical viewport (world-space pixels visible at ZOOM)
+const LOGICAL_W = canvas.width / ZOOM;  // 480
+const LOGICAL_H = canvas.height / ZOOM;  // 320
+// Crisp pixel rendering
+ctx.imageSmoothingEnabled = false;
 
 // ── Hotspot Initialisation ────────────────────────────────────
 function initializeHotspots() {
@@ -203,13 +209,15 @@ function getFallbackData() {
 }
 
 // ── Camera ────────────────────────────────────────────────────
+// Camera is in world-space. The logical viewport (480×320) is
+// centred on the player and clamped to map bounds.
 function updateCamera() {
     const cam = gameState.camera;
     const p = gameState.player;
-    cam.x = p.x + p.width / 2 - canvas.width / 2;
-    cam.y = p.y + p.height / 2 - canvas.height / 2;
-    cam.x = Math.max(0, Math.min(cam.x, WORLD_W - canvas.width));
-    cam.y = Math.max(0, Math.min(cam.y, WORLD_H - canvas.height));
+    cam.x = p.x + p.width / 2 - LOGICAL_W / 2;
+    cam.y = p.y + p.height / 2 - LOGICAL_H / 2;
+    cam.x = Math.max(0, Math.min(cam.x, WORLD_W - LOGICAL_W));
+    cam.y = Math.max(0, Math.min(cam.y, WORLD_H - LOGICAL_H));
 }
 
 // ── Day / Night helpers ───────────────────────────────────────
@@ -271,10 +279,14 @@ function drawTileMap() {
     const sheetKey = isNightTime() ? 'cityNight' : 'cityDay';
     const img = assets.images[sheetKey];
 
-    const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE));
-    const endCol = Math.min(MAP_COLS - 1, Math.ceil((cam.x + canvas.width) / TILE_SIZE));
-    const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE));
-    const endRow = Math.min(MAP_ROWS - 1, Math.ceil((cam.y + canvas.height) / TILE_SIZE));
+    // Cull to logical viewport (+1 tile buffer each side)
+    const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE) - 1);
+    const endCol = Math.min(MAP_COLS - 1, Math.ceil((cam.x + LOGICAL_W) / TILE_SIZE) + 1);
+    const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE) - 1);
+    const endRow = Math.min(MAP_ROWS - 1, Math.ceil((cam.y + LOGICAL_H) / TILE_SIZE) + 1);
+
+    // Ground tiles that look better as solid fills than from the sprite sheet
+    const GROUND_TILES = new Set([T.PARK, T.ROAD_H, T.ROAD_V, T.CROSS, T.SIDE]);
 
     for (let row = startRow; row <= endRow; row++) {
         for (let col = startCol; col <= endCol; col++) {
@@ -282,41 +294,43 @@ function drawTileMap() {
             const dx = col * TILE_SIZE - cam.x;
             const dy = row * TILE_SIZE - cam.y;
 
-            if (img && TILE_GRID_POS[tileId] !== undefined) {
+            if (!GROUND_TILES.has(tileId) && img && TILE_GRID_POS[tileId] !== undefined) {
+                // Building / decoration — draw from sprite sheet
                 const [gc, gr] = TILE_GRID_POS[tileId];
                 const sw = img.naturalWidth / 5;
                 const sh = img.naturalHeight / 3;
                 ctx.drawImage(img, gc * sw, gr * sh, sw, sh, dx, dy, TILE_SIZE, TILE_SIZE);
             } else {
-                ctx.fillStyle = TILE_COLORS[tileId] || '#111';
+                // Ground tile — solid fill for clarity
+                ctx.fillStyle = TILE_COLORS[tileId] || '#2d5a1b';
                 ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
             }
         }
     }
 
-    // Road centre lines
+    // Road centre lines (drawn in logical coords)
     ctx.save();
     ctx.strokeStyle = '#ffea00';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([14, 14]);
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([10, 10]);
 
     // Horizontal roads (rows 6 and 13)
     [6, 13].forEach(roadRow => {
         const ry = roadRow * TILE_SIZE + TILE_SIZE / 2 - cam.y;
-        if (ry >= 0 && ry <= canvas.height) {
+        if (ry >= -TILE_SIZE && ry <= LOGICAL_H + TILE_SIZE) {
             ctx.beginPath();
             ctx.moveTo(0, ry);
-            ctx.lineTo(canvas.width, ry);
+            ctx.lineTo(LOGICAL_W, ry);
             ctx.stroke();
         }
     });
 
     // Vertical road (col 14)
     const vx = 14 * TILE_SIZE + TILE_SIZE / 2 - cam.x;
-    if (vx >= 0 && vx <= canvas.width) {
+    if (vx >= -TILE_SIZE && vx <= LOGICAL_W + TILE_SIZE) {
         ctx.beginPath();
         ctx.moveTo(vx, 0);
-        ctx.lineTo(vx, canvas.height);
+        ctx.lineTo(vx, LOGICAL_H);
         ctx.stroke();
     }
 
@@ -331,8 +345,9 @@ function drawHotspots() {
         const sx = hs.x - cam.x;
         const sy = hs.y - cam.y;
 
-        if (sx + hs.width < 0 || sx > canvas.width) return;
-        if (sy + hs.height < 0 || sy > canvas.height) return;
+        // Cull against logical viewport
+        if (sx + hs.width < 0 || sx > LOGICAL_W) return;
+        if (sy + hs.height < 0 || sy > LOGICAL_H) return;
 
         const isNearest = gameState.nearestHotspot === hs;
 
@@ -349,22 +364,25 @@ function drawHotspots() {
         ctx.strokeRect(sx, sy, hs.width, hs.height);
         ctx.restore();
 
-        // Floating label
+        // Floating label (scaled down since we're in 2× context)
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.font = '20px Arial';
-        ctx.fillText(hs.icon, sx + hs.width / 2, sy - 14);
-        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.font = '10px Arial';
+        ctx.fillText(hs.icon, sx + hs.width / 2, sy - 7);
+        ctx.font = '4px "Press Start 2P", monospace';
         ctx.fillStyle = hs.color;
         ctx.shadowColor = hs.color;
-        ctx.shadowBlur = isNearest ? 8 : 0;
-        ctx.fillText(hs.label, sx + hs.width / 2, sy - 2);
+        ctx.shadowBlur = isNearest ? 6 : 0;
+        ctx.fillText(hs.label, sx + hs.width / 2, sy - 1);
         ctx.restore();
     });
 }
 
 // ── Player Rendering ──────────────────────────────────────────
+// Sprite sheet layout: 4 cols × 4 rows
+//   Cols (direction): 0=front(down), 1=back(up), 2=left, 3=right
+//   Rows (character): 0=Player, 1=Recruiter, 2=Friend, 3=Family
 const DIR_COL = { down: 0, up: 1, left: 2, right: 3 };
 
 function drawPlayer() {
@@ -377,11 +395,15 @@ function drawPlayer() {
     const dy = p.y - cam.y;
 
     if (img) {
-        const frameCol = p.isMoving ? p.frame : 0;
-        const srcX = frameCol * 32;
-        const srcY = p.spriteRow * 32;
-        ctx.drawImage(img, srcX, srcY, 32, 32, dx, dy, TILE_SIZE, TILE_SIZE);
+        // Each cell in the 4×4 sheet
+        const cellW = img.naturalWidth / 4;
+        const cellH = img.naturalHeight / 4;
+        const dirCol = DIR_COL[p.direction] ?? 0;
+        const srcX = dirCol * cellW;
+        const srcY = p.spriteRow * cellH;
+        ctx.drawImage(img, srcX, srcY, cellW, cellH, dx, dy, TILE_SIZE, TILE_SIZE);
     } else {
+        // Fallback coloured block
         ctx.fillStyle = '#00f5ff';
         ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
         ctx.strokeStyle = '#ff006e';
@@ -392,7 +414,7 @@ function drawPlayer() {
     // Neon glow outline
     ctx.save();
     ctx.shadowColor = '#00f5ff';
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 8;
     ctx.strokeStyle = '#00f5ff44';
     ctx.lineWidth = 1;
     ctx.strokeRect(dx, dy, TILE_SIZE, TILE_SIZE);
@@ -850,14 +872,26 @@ function gameLoop() {
     drawBackground();
 
     if (gameState.phase === 'select') {
+        // Character select is a full-canvas overlay — no zoom
         drawCharacterSelect();
     } else {
         updatePlayer();
         updateCamera();
+
+        // ── Zoomed world rendering ──────────────────────────
+        // All world-space draws happen inside ctx.scale(ZOOM, ZOOM).
+        // This makes the logical viewport 480×320, showing ~10×7 tiles.
+        ctx.save();
+        ctx.scale(ZOOM, ZOOM);
+        ctx.imageSmoothingEnabled = false;
         drawTileMap();
         renderDayTint();
         drawHotspots();
         drawPlayer();
+        ctx.restore();
+        // ────────────────────────────────────────────────────
+
+        // Full-canvas overlays drawn AFTER restoring scale
         renderDayNightCycle();
         drawHUD();
     }
