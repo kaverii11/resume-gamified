@@ -28,31 +28,42 @@ const PLAZA = { x: 880, y: 880, w: 240, h: 240 };
 
 // ── Building / hotspot definitions ────────────────────────────
 // Compressed layout. Max size locked to 144x144 (3x3 tiles).
+// Realigned to sit flush against roads (not on them).
 const SCENE_BUILDINGS = [
     {
         id: 'education', label: 'EDUCATION', icon: '🎓', color: '#e67e22',
-        x: 600, y: 600, w: 144, h: 144, sheetQ: 0,
+        x: 536, y: 536, w: 144, h: 144, sheetQ: 0,
     },
     {
         id: 'experience', label: 'EXPERIENCE', icon: '💼', color: '#3498db',
-        x: 1260, y: 600, w: 144, h: 144, sheetQ: 1,
+        x: 1320, y: 536, w: 144, h: 144, sheetQ: 1,
     },
     {
         id: 'about', label: 'ABOUT ME', icon: '👤', color: '#9b59b6',
-        x: 600, y: 1260, w: 144, h: 144, sheetQ: 2,
+        x: 536, y: 1320, w: 144, h: 144, sheetQ: 2,
     },
     {
         id: 'skills', label: 'SKILLS', icon: '🛠️', color: '#f1c40f',
-        x: 1260, y: 1260, w: 144, h: 144, sheetQ: 3,
+        x: 1320, y: 1320, w: 144, h: 144, sheetQ: 3,
     },
     {
         id: 'contact', label: 'CONTACT', icon: '📧', color: '#2ecc71',
-        x: 928, y: 500, w: 144, h: 144, sheetQ: 1,
+        x: 816, y: 536, w: 144, h: 144, sheetQ: 1,
     },
     {
         id: 'fun', label: 'FUN FACTS', icon: '⭐', color: '#e74c3c',
-        x: 928, y: 1360, w: 144, h: 144, sheetQ: 2,
+        x: 816, y: 1320, w: 144, h: 144, sheetQ: 2,
     },
+];
+
+// Additional decorative buildings
+const DECORATIVE_BUILDINGS = [
+    { x: 1040, y: 536, w: 144, h: 144, sheetQ: 0 }, // Cafe (Top Right of Contact)
+    { x: 1040, y: 1320, w: 144, h: 144, sheetQ: 2 }, // House (Bottom Right of Fun)
+    { x: 536, y: 800, w: 144, h: 144, sheetQ: 3 },  // Library (West Side)
+    { x: 1320, y: 800, w: 144, h: 144, sheetQ: 1 }, // Shop (East Side)
+    { x: 536, y: 1056, w: 144, h: 144, sheetQ: 0 }, // Cafe (West Side Lower)
+    { x: 1320, y: 1056, w: 144, h: 144, sheetQ: 2 }, // House (East Side Lower)
 ];
 
 // ── Nature scatter ────────────────────────────────────────────
@@ -104,7 +115,7 @@ class AssetLoader {
         const d = id.data;
         for (let i = 0; i < d.length; i += 4) {
             // If near white, make transparent
-            if (d[i] > 240 && d[i + 1] > 240 && d[i + 2] > 240) d[i + 3] = 0;
+            if (d[i] > 220 && d[i + 1] > 220 && d[i + 2] > 220) d[i + 3] = 0;
         }
         ctx.putImageData(id, 0, 0);
         const newImg = new Image();
@@ -171,6 +182,18 @@ function initializeScene() {
         height: def.h,
         type: 'building',
     }));
+
+    // Add decorative buildings to hotspots list (for rendering/collision) but mark as non-interactive
+    DECORATIVE_BUILDINGS.forEach(def => {
+        gameState.hotspots.push({
+            ...def,
+            width: def.w,
+            height: def.h,
+            type: 'decor',
+            id: 'decor_' + Math.random(),
+            color: '#8e44ad', // fallback color
+        });
+    });
 
     // Seed dense forests around the edges
     const rng = (n) => { let x = Math.sin(n + 1) * 73856; return x - Math.floor(x); };
@@ -382,12 +405,13 @@ function drawEntitiesSorted() {
     // Build list: buildings + player, each tagged with a sortY = bottom edge
     const entities = [];
 
-    // Add buildings
+    // Add buildings (active) and decor
     for (const b of gameState.hotspots) {
         entities.push({ type: 'building', data: b, sortY: b.y + b.height });
     }
-    // Add player
+    // Add player (sort comparison: player Y vs building Bottom Y)
     const p = gameState.player;
+    // Player depth is roughly at their feet
     entities.push({ type: 'player', data: p, sortY: p.y + p.height });
 
     // Sort ascending by bottom edge (painter's algorithm)
@@ -405,10 +429,15 @@ function drawEntitiesSorted() {
 
             const isNearest = gameState.nearestHotspot === hs;
 
+            // Choose sheet: buildingSheet for active, decorativeBuildings for decor
+            const sheet = (hs.type === 'decor') ? assets.images['decorativeBuildings'] : bldSheet;
+
             // Draw building sprite from sheet quadrant
-            if (bldSheet) {
+            if (sheet) {
                 const qCol = hs.sheetQ % 2;
                 const qRow = Math.floor(hs.sheetQ / 2);
+                const cellW = sheet.naturalWidth / 2;
+                const cellH = sheet.naturalHeight / 2;
                 const srcX = qCol * cellW;
                 const srcY = qRow * cellH;
                 const scale = isNearest ? 1.05 : 1.0;
@@ -416,39 +445,31 @@ function drawEntitiesSorted() {
                 const dh = hs.height * scale;
                 const offX = (dw - hs.width) / 2;
                 const offY = (dh - hs.height) / 2;
+
                 ctx.save();
-                if (isNearest) { ctx.shadowColor = hs.color; ctx.shadowBlur = 24; }
-                ctx.drawImage(bldSheet, srcX, srcY, cellW, cellH,
+                if (isNearest) { ctx.shadowColor = '#ffeaa7'; ctx.shadowBlur = 12; }
+                ctx.drawImage(sheet, srcX, srcY, cellW, cellH,
                     sx - offX, sy - offY, dw, dh);
                 ctx.restore();
             } else {
                 // Fallback rectangle
-                ctx.fillStyle = hs.color + '55';
-                ctx.strokeStyle = hs.color;
-                ctx.lineWidth = 2;
+                ctx.fillStyle = hs.type === 'decor' ? '#95a5a6' : hs.color;
                 ctx.fillRect(sx, sy, hs.width, hs.height);
-                ctx.strokeRect(sx, sy, hs.width, hs.height);
             }
+            // NO debug borders drawn
 
-            // Neon outline
-            ctx.save();
-            ctx.strokeStyle = isNearest ? hs.color : hs.color + '77';
-            ctx.lineWidth = isNearest ? 2 : 1;
-            if (isNearest) { ctx.shadowColor = hs.color; ctx.shadowBlur = 14; }
-            ctx.strokeRect(sx, sy, hs.width, hs.height);
-            ctx.restore();
-
-            // Floating label
-            ctx.save();
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.font = '12px monospace';
-            ctx.fillText(hs.icon, sx + hs.width / 2, sy - 8);
-            ctx.font = 'bold 6px monospace';
-            ctx.fillStyle = isNearest ? hs.color : '#ffffffcc';
-            if (isNearest) { ctx.shadowColor = hs.color; ctx.shadowBlur = 8; }
-            ctx.fillText(hs.label, sx + hs.width / 2, sy - 1);
-            ctx.restore();
+            // Floating label (only for active buildings)
+            if (hs.type === 'building') {
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.font = '12px monospace';
+                ctx.fillText(hs.icon, sx + hs.width / 2, sy - 8);
+                // ctx.font = 'bold 6px monospace';
+                // ctx.fillStyle = isNearest ? hs.color : '#ffffffcc';
+                // ctx.fillText(hs.label, sx + hs.width / 2, sy - 1);
+                ctx.restore();
+            }
         }
     }
 }
@@ -477,21 +498,10 @@ function _drawPlayer() {
         ctx.drawImage(img, srcX, srcY, cellW, cellH, dx, dy, p.width, p.height);
     } else {
         // Fallback coloured block
-        ctx.fillStyle = '#00f5ff';
+        ctx.fillStyle = '#ff9f43';
         ctx.fillRect(dx, dy, p.width, p.height);
-        ctx.strokeStyle = '#ff006e';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(dx, dy, p.width, p.height);
     }
-
-    // Neon glow outline
-    ctx.save();
-    ctx.shadowColor = '#00f5ff';
-    ctx.shadowBlur = 8;
-    ctx.strokeStyle = '#00f5ff44';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(dx, dy, p.width, p.height);
-    ctx.restore();
+    // Debug outline removed
 }
 
 // ── Character Select Screen ───────────────────────────────────
@@ -638,7 +648,18 @@ function isSolidAt(worldX, worldY) {
     // Actually, road layout should presumably reach doors.
     // If we rely on ROADS reaching them, we don't need this.
 
-    // 4. Default: Grass is solid
+    // 4. Check Buildings (Solid Walls)
+    if (gameState.hotspots) {
+        for (const b of gameState.hotspots) {
+            // Check AABB collision
+            if (worldX >= b.x && worldX <= b.x + b.width &&
+                worldY >= b.y && worldY <= b.y + b.height) {
+                return true;
+            }
+        }
+    }
+
+    // 5. Default: Grass is solid (unless we are on road or plaza)
     return true;
 }
 
@@ -692,14 +713,36 @@ function checkNearbyHotspots() {
     const p = gameState.player;
     const px = p.x + p.width / 2;
     const py = p.y + p.height / 2;
-    let nearest = null, minDist = INTERACT_DIST;
+
+    // Facing direction vector
+    let dbx = 0, dby = 0;
+    if (p.direction === 'up') dby = -32;
+    if (p.direction === 'down') dby = 32;
+    if (p.direction === 'left') dbx = -32;
+    if (p.direction === 'right') dbx = 32;
+
+    // Interaction point: 32px ahead of player center
+    const tx = px + dbx;
+    const ty = py + dby;
+
+    let nearest = null;
 
     for (const hs of gameState.hotspots) {
-        // Distance to nearest edge of building rect (not centre-to-centre)
-        const clampX = Math.max(hs.x, Math.min(px, hs.x + hs.width));
-        const clampY = Math.max(hs.y, Math.min(py, hs.y + hs.height));
-        const d = Math.hypot(clampX - px, clampY - py);
-        if (d < minDist) { minDist = d; nearest = hs; }
+        if (hs.type !== 'building') continue; // Only interactive buildings
+
+        // Define interaction zone (bottom edge / door area)
+        // e.g. center of bottom, radius 48
+        const doorX = hs.x + hs.width / 2;
+        const doorY = hs.y + hs.height; // just below the building
+
+        const dist = Math.hypot(tx - doorX, ty - doorY);
+        // Also allow if we are just overlapping the building rect slightly
+        const overlap = (tx > hs.x && tx < hs.x + hs.width && ty > hs.y && ty < hs.y + hs.height);
+
+        if (dist < 50 || overlap) {
+            nearest = hs;
+            break; // found one
+        }
     }
 
     gameState.nearestHotspot = nearest;
@@ -987,6 +1030,7 @@ async function init() {
     try {
         await assets.loadAll({
             buildingSheet: 'assets/building_sprites.png',
+            decorativeBuildings: 'assets/decorative_buildings.png',
             fountain: 'assets/fountain_plaza.png',
             natureSheet: 'assets/nature_sprites.png',
             characterPortraits: 'assets/character_portraits.png',
