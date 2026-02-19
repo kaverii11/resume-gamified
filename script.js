@@ -10,72 +10,57 @@ const PLAYER_SPEED = 3;
 const INTERACT_DIST = 120;    // px – distance to trigger prompt
 
 // ── Road geometry ──────────────────────────────────────────────
-// Each entry is { x, y, w, h } in world-space pixels.
-// Roads are walkable (gray asphalt). Grass outside is also walkable.
+// Roads are the ONLY walkable areas.
+// Compressed layout around the central plaza (880,880 240×240).
 const ROADS = [
-    // ── Main north-south spine ────────────────────────────────
-    { x: 940, y: 0, w: 120, h: 920 },   // N arm (to plaza)
-    { x: 940, y: 1120, w: 120, h: 880 },   // S arm (from plaza)
-    // ── Main east-west spine ─────────────────────────────────
-    { x: 0, y: 940, w: 920, h: 120 },   // W arm
-    { x: 1120, y: 940, w: 880, h: 120 },   // E arm
-    // ── NW branch (→ University) ──────────────────────────────
-    { x: 272, y: 940, w: 668, h: 120 },   // horizontal segment already covered by W arm, extra width
-    { x: 272, y: 272, w: 120, h: 668 },   // vertical down to W arm
-    // ── NE branch (→ Skyscraper) ──────────────────────────────
-    { x: 1060, y: 272, w: 668, h: 120 },   // horizontal
-    { x: 1608, y: 272, w: 120, h: 668 },   // vertical
-    // ── SW branch (→ Cottage) ─────────────────────────────────
-    { x: 272, y: 1060, w: 668, h: 120 },
-    { x: 272, y: 1060, w: 120, h: 668 },
-    // ── SE branch (→ Tech Lab) ────────────────────────────────
-    { x: 1060, y: 1060, w: 668, h: 120 },
-    { x: 1608, y: 1060, w: 120, h: 668 },
+    // Main Cross
+    { x: 960, y: 400, w: 80, h: 1200 },  // North-South spine (long)
+    { x: 400, y: 960, w: 1200, h: 80 },  // East-West spine (long)
+    // Inner Ring / Building Access
+    { x: 680, y: 680, w: 80, h: 640 },   // West vertical
+    { x: 1240, y: 680, w: 80, h: 640 },  // East vertical
+    { x: 680, y: 680, w: 640, h: 80 },   // North horizontal
+    { x: 680, y: 1240, w: 640, h: 80 },  // South horizontal
 ];
 
 // ── Town plaza (cobblestone square around fountain) ────────────
 const PLAZA = { x: 880, y: 880, w: 240, h: 240 };
 
 // ── Building / hotspot definitions ────────────────────────────
-// x, y = world-space top-left corner.  w, h = size in px.
-// sheetQ = quadrant of building_sprites.png (0=TL,1=TR,2=BL,3=BR).
+// Compressed layout. Max size locked to 144x144 (3x3 tiles).
 const SCENE_BUILDINGS = [
     {
-        id: 'education', label: 'EDUCATION', icon: '🎓', color: '#ff006e',
-        x: 80, y: 80, w: 192, h: 192, sheetQ: 0,
+        id: 'education', label: 'EDUCATION', icon: '🎓', color: '#e67e22',
+        x: 600, y: 600, w: 144, h: 144, sheetQ: 0,
     },
     {
-        id: 'experience', label: 'EXPERIENCE', icon: '💼', color: '#00f5ff',
-        x: 1728, y: 80, w: 192, h: 192, sheetQ: 1,
+        id: 'experience', label: 'EXPERIENCE', icon: '💼', color: '#3498db',
+        x: 1260, y: 600, w: 144, h: 144, sheetQ: 1,
     },
     {
-        id: 'about', label: 'ABOUT ME', icon: '👤', color: '#b967ff',
-        x: 80, y: 1728, w: 192, h: 192, sheetQ: 2,
+        id: 'about', label: 'ABOUT ME', icon: '👤', color: '#9b59b6',
+        x: 600, y: 1260, w: 144, h: 144, sheetQ: 2,
     },
     {
-        id: 'skills', label: 'SKILLS', icon: '🛠️', color: '#ffea00',
-        x: 1728, y: 1728, w: 192, h: 192, sheetQ: 3,
+        id: 'skills', label: 'SKILLS', icon: '🛠️', color: '#f1c40f',
+        x: 1260, y: 1260, w: 144, h: 144, sheetQ: 3,
     },
     {
-        id: 'contact', label: 'CONTACT', icon: '📧', color: '#00f5ff',
-        x: 904, y: 80, w: 192, h: 192, sheetQ: 1,   // reuse skyscraper
+        id: 'contact', label: 'CONTACT', icon: '📧', color: '#2ecc71',
+        x: 928, y: 500, w: 144, h: 144, sheetQ: 1,
     },
     {
-        id: 'fun', label: 'FUN FACTS', icon: '⭐', color: '#ff9500',
-        x: 904, y: 1728, w: 192, h: 192, sheetQ: 2,   // reuse cottage
-    },
-    {
-        id: 'projects', label: 'PROJECTS', icon: '💻', color: '#b967ff',
-        x: 1728, y: 904, w: 192, h: 192, sheetQ: 3,   // reuse lab
+        id: 'fun', label: 'FUN FACTS', icon: '⭐', color: '#e74c3c',
+        x: 928, y: 1360, w: 144, h: 144, sheetQ: 2,
     },
 ];
 
-// ── Nature scatter (seeded, world-space pixel centres) ───────
-// Generated once at runtime in initializeScene().
-let SCENE_TREES = [];   // { x, y } — collision circle r=28
-let SCENE_FLOWERS = [];   // { x, y, hue }
+// ── Nature scatter ────────────────────────────────────────────
+// Trees will form borders.
+let SCENE_TREES = [];
+let SCENE_FLOWERS = [];
 
-// ── Fountain (impassable centrepiece) ─────────────────────────
+// ── Fountain ──────────────────────────────────────────────────
 const FOUNTAIN = { x: 904, y: 904, w: 192, h: 192 };
 
 // (Old tile system removed — replaced by SCENE-based rendering)
@@ -87,10 +72,44 @@ class AssetLoader {
     load(key, src) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            img.onload = () => { this.images[key] = img; resolve(img); };
+            img.onload = () => {
+                if (key === 'natureSheet' || key.includes('player') || key.includes('building')) {
+                    const processed = this.processTransparency(img);
+                    processed.onload = () => {
+                        this.images[key] = processed;
+                        resolve(processed);
+                    };
+                    processed.onerror = () => {
+                        // If processing fails, fallback to original
+                        this.images[key] = img;
+                        resolve(img);
+                    };
+                } else {
+                    this.images[key] = img;
+                    resolve(img);
+                }
+            };
             img.onerror = () => reject(new Error(`Failed to load: ${src}`));
             img.src = src;
         });
+    }
+
+    processTransparency(img) {
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const id = ctx.getImageData(0, 0, c.width, c.height);
+        const d = id.data;
+        for (let i = 0; i < d.length; i += 4) {
+            // If near white, make transparent
+            if (d[i] > 240 && d[i + 1] > 240 && d[i + 2] > 240) d[i + 3] = 0;
+        }
+        ctx.putImageData(id, 0, 0);
+        const newImg = new Image();
+        newImg.src = c.toDataURL();
+        return newImg;
     }
 
     loadAll(manifest) {
@@ -153,60 +172,29 @@ function initializeScene() {
         type: 'building',
     }));
 
-    // Seed deterministic pseudo-random trees + flowers in "green zones"
+    // Seed dense forests around the edges
     const rng = (n) => { let x = Math.sin(n + 1) * 73856; return x - Math.floor(x); };
     SCENE_TREES = [];
     SCENE_FLOWERS = [];
-    const DANGER_MARGIN = 80; // keep nature away from buildings
-    const ROAD_W = 120;
 
-    function inGreenZone(x, y) {
-        // Must be inside world
-        if (x < 20 || y < 20 || x > WORLD_W - 20 || y > WORLD_H - 20) return false;
-        // Not in plaza
-        if (x > PLAZA.x - 30 && x < PLAZA.x + PLAZA.w + 30 &&
-            y > PLAZA.y - 30 && y < PLAZA.y + PLAZA.h + 30) return false;
-        // Not in fountain
-        if (x > FOUNTAIN.x - 20 && x < FOUNTAIN.x + FOUNTAIN.w + 20 &&
-            y > FOUNTAIN.y - 20 && y < FOUNTAIN.y + FOUNTAIN.h + 20) return false;
-        // Not inside a building (+margin)
-        for (const b of SCENE_BUILDINGS) {
-            if (x > b.x - DANGER_MARGIN && x < b.x + b.w + DANGER_MARGIN &&
-                y > b.y - DANGER_MARGIN && y < b.y + b.h + DANGER_MARGIN) return false;
+    // Dense Forest Borders
+    for (let i = 0; i < 200; i++) {
+        const x = Math.floor(rng(i) * WORLD_W);
+        const y = Math.floor(rng(i + 100) * WORLD_H);
+
+        // Keep trees away from the central town area (500-1500)
+        // Trees appear if X < 500 or X > 1500 or Y < 500 or Y > 1500
+        if (x < 500 || x > 1500 || y < 500 || y > 1500) {
+            SCENE_TREES.push({ x, y, size: 64 + rng(i) * 32 });
         }
-        // Not on a road
-        for (const r of ROADS) {
-            if (x > r.x - 20 && x < r.x + r.w + 20 &&
-                y > r.y - 20 && y < r.y + r.h + 20) return false;
-        }
-        return true;
     }
 
-    // Place 60 trees
+    // Flowers in the green spaces near buildings
     for (let i = 0; i < 60; i++) {
-        let attempts = 0;
-        while (attempts++ < 50) {
-            const tx = Math.floor(rng(i * 3) * (WORLD_W - 80)) + 40;
-            const ty = Math.floor(rng(i * 3 + 1) * (WORLD_H - 80)) + 40;
-            if (inGreenZone(tx, ty)) {
-                const sz = 44 + Math.floor(rng(i * 3 + 2) * 20);
-                SCENE_TREES.push({ x: tx, y: ty, size: sz });
-                break;
-            }
-        }
-    }
-
-    // Place 40 flowers
-    for (let i = 0; i < 40; i++) {
-        let attempts = 0;
-        while (attempts++ < 50) {
-            const fx = Math.floor(rng(i * 5 + 200) * (WORLD_W - 60)) + 30;
-            const fy = Math.floor(rng(i * 5 + 201) * (WORLD_H - 60)) + 30;
-            if (inGreenZone(fx, fy)) {
-                SCENE_FLOWERS.push({ x: fx, y: fy, hue: Math.floor(rng(i * 5 + 202) * 360) });
-                break;
-            }
-        }
+        const fx = 600 + rng(i) * 800;
+        const fy = 600 + rng(i + 50) * 800;
+        // Avoid roads/buildings check simplified
+        SCENE_FLOWERS.push({ x: fx, y: fy, hue: Math.floor(rng(i) * 360) });
     }
 }
 
@@ -250,39 +238,9 @@ function updateCamera() {
     cam.y = Math.max(0, Math.min(cam.y, WORLD_H - LOGICAL_H));
 }
 
-// ── Day / Night helpers ───────────────────────────────────────
-function isNightTime() {
-    const t = gameState.gameTime;
-    return t >= 1800 || t < 600;
-}
-
-function nightBlend() {
-    const t = gameState.gameTime;
-    if (t >= 1700 && t < 1900) return (t - 1700) / 200;
-    if (t >= 500 && t < 700) return 1 - (t - 500) / 200;
-    return isNightTime() ? 1 : 0;
-}
-
-// ── Day/Night Overlays ────────────────────────────────────────
-function renderDayNightCycle() {
-    const blend = nightBlend();
-    if (blend <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = blend * 0.65;
-    ctx.fillStyle = 'rgba(10, 14, 39, 1)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
-}
-
-function renderDayTint() {
-    const blend = 1 - nightBlend();
-    if (blend <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = blend * 0.08;
-    ctx.fillStyle = 'rgba(255, 200, 100, 1)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
-}
+// ── Day / Night logic removed ─────────────────────────────────
+function renderDayNightCycle() { /* No-op */ }
+function renderDayTint() { /* No-op */ }
 
 // ── Layer 0: Grass background ─────────────────────────────────
 function drawGrass() {
@@ -373,43 +331,41 @@ function drawTownSquare() {
 }
 
 // ── Layer 3a: Nature decorations (trees + flowers) ────────────
+// ── Layer 3a: Nature decorations (trees + flowers) ────────────
 function drawDecorations() {
     const cam = gameState.camera;
     const natImg = assets.images['natureSheet'];
-    // Nature sheet proportions: left 2/3 = tree (approximately)
-    const treeW = natImg ? natImg.naturalWidth * 0.65 : 64;
-    const treeH = natImg ? natImg.naturalHeight : 64;
-    const flowX = natImg ? natImg.naturalWidth * 0.65 : 0;
-    const flowW = natImg ? natImg.naturalWidth * 0.35 : 32;
-    const flowH = natImg ? natImg.naturalHeight * 0.5 : 32;
 
-    // Flowers (no collision, drawn under trees)
+    // Assumed 3x3 grid: 
+    // Row 0: Trees
+    // Row 1: Bushes
+    // Row 2: Flowers
+
+    if (!natImg) return;
+
+    const cw = natImg.width / 3;
+    const ch = natImg.height / 3;
+
+    // Flowers (Row 2) - drawn below trees
     for (const f of SCENE_FLOWERS) {
         const sx = f.x - cam.x, sy = f.y - cam.y;
         if (sx < -32 || sx > LOGICAL_W + 32 || sy < -32 || sy > LOGICAL_H + 32) continue;
-        if (natImg) {
-            ctx.drawImage(natImg, flowX, 0, flowW, flowH, sx - 10, sy - 10, 20, 20);
-        } else {
-            ctx.fillStyle = `hsl(${f.hue},90%,60%)`;
-            ctx.beginPath();
-            ctx.arc(sx, sy, 4, 0, Math.PI * 2);
-            ctx.fill();
-        }
+
+        // Random flower from row 2 (cols 0,1,2)
+        const col = f.hue % 3;
+        ctx.drawImage(natImg, col * cw, 2 * ch, cw, ch, sx - 10, sy - 10, 20, 20);
     }
 
-    // Trees (sorted front-to-back already by initializeScene seed order)
+    // Trees (Row 0)
     for (const t of SCENE_TREES) {
         const sx = t.x - cam.x, sy = t.y - cam.y;
         if (sx < -64 || sx > LOGICAL_W + 64 || sy < -64 || sy > LOGICAL_H + 64) continue;
         const size = t.size || 52;
-        if (natImg) {
-            ctx.drawImage(natImg, 0, 0, treeW, treeH, sx - size / 2, sy - size * 0.7, size, size);
-        } else {
-            ctx.fillStyle = '#2a7a1a';
-            ctx.beginPath();
-            ctx.arc(sx, sy - 8, size / 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
+
+        // Random tree from row 0
+        const col = Math.floor(t.x) % 3;
+        // Draw slightly offset up so 'y' is trunk base
+        ctx.drawImage(natImg, col * cw, 0, cw, ch, sx - size / 2, sy - size * 0.85, size, size);
     }
 }
 
@@ -549,8 +505,8 @@ function drawCharacterSelect() {
     const W = canvas.width;
     const H = canvas.height;
 
-    // Dark overlay
-    ctx.fillStyle = 'rgba(5, 8, 24, 0.92)';
+    // Cozy Overlay
+    ctx.fillStyle = '#fffcf5';
     ctx.fillRect(0, 0, W, H);
 
     // Title
@@ -558,9 +514,9 @@ function drawCharacterSelect() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = '18px "Press Start 2P", monospace';
-    ctx.fillStyle = '#00f5ff';
-    ctx.shadowColor = '#00f5ff';
-    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#4a3c31'; // Cozy Dark
+    // ctx.shadowColor = '#d35400';
+    // ctx.shadowBlur = 0;
     ctx.fillText('CHOOSE YOUR CHARACTER', W / 2, 80);
     ctx.restore();
 
@@ -569,7 +525,7 @@ function drawCharacterSelect() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = '8px "Press Start 2P", monospace';
-    ctx.fillStyle = '#ffffff88';
+    ctx.fillStyle = '#8b5a2b'; // Cozy Border/Brown
     ctx.fillText('Click a portrait to begin', W / 2, 118);
     ctx.restore();
 
@@ -588,7 +544,7 @@ function drawCharacterSelect() {
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.font = '8px "Press Start 2P", monospace';
-        ctx.fillStyle = gRow === 0 ? '#00f5ff' : '#ff006e';
+        ctx.fillStyle = gRow === 0 ? '#2980b9' : '#c0392b'; // M:Blue, F:Red (Muted)
         ctx.fillText(gLabel, startX, rowY[gRow] - 18);
         ctx.restore();
 
@@ -600,12 +556,12 @@ function drawCharacterSelect() {
 
             // Card background
             ctx.save();
-            ctx.fillStyle = isHovered ? 'rgba(0,245,255,0.15)' : 'rgba(255,255,255,0.05)';
+            ctx.fillStyle = isHovered ? '#fdf6e3' : '#fffcf5';
             ctx.strokeStyle = isHovered
-                ? (gRow === 0 ? '#00f5ff' : '#ff006e')
-                : 'rgba(255,255,255,0.2)';
-            ctx.lineWidth = isHovered ? 2.5 : 1;
-            if (isHovered) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 16; }
+                ? '#d35400' // Accent on hover
+                : '#8b5a2b'; // Wood border normally
+            ctx.lineWidth = isHovered ? 3 : 2;
+            if (isHovered) { ctx.shadowColor = '#d35400'; ctx.shadowBlur = 8; }
             roundRect(ctx, cx, cy, cardW, cardH, 8);
             ctx.fill();
             ctx.stroke();
@@ -622,7 +578,7 @@ function drawCharacterSelect() {
                 );
             } else {
                 // Fallback colour block
-                ctx.fillStyle = gRow === 0 ? '#1a3a5a' : '#3a1a3a';
+                ctx.fillStyle = gRow === 0 ? '#3498db' : '#e74c3c';
                 ctx.fillRect(cx + 10, cy + 10, cardW - 20, cardH - 44);
             }
 
@@ -632,8 +588,8 @@ function drawCharacterSelect() {
             ctx.textBaseline = 'middle';
             ctx.font = '6px "Press Start 2P", monospace';
             ctx.fillStyle = isHovered
-                ? (gRow === 0 ? '#00f5ff' : '#ff006e')
-                : '#cccccc';
+                ? '#d35400'
+                : '#4a3c31';
             ctx.fillText(name, cx + cardW / 2, cy + cardH - 18);
             ctx.restore();
         });
@@ -656,33 +612,49 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 // ── Collision Detection ───────────────────────────────────────
+// ── Collision Detection ───────────────────────────────────────
 function isSolidAt(worldX, worldY) {
-    // World boundary
+    // 1. World Boundary
     if (worldX < 0 || worldY < 0 || worldX >= WORLD_W || worldY >= WORLD_H) return true;
-    // Buildings
-    for (const b of SCENE_BUILDINGS) {
-        if (worldX >= b.x && worldX <= b.x + b.w &&
-            worldY >= b.y && worldY <= b.y + b.h) return true;
+
+    // 2. Walkable Areas (Roads & Plaza) — if inside, it's NOT solid
+    // Check Plaza
+    if (worldX >= PLAZA.x && worldX <= PLAZA.x + PLAZA.w &&
+        worldY >= PLAZA.y && worldY <= PLAZA.y + PLAZA.h) {
+        // Exception: Fountain in plaza is solid
+        if (worldX >= FOUNTAIN.x && worldX <= FOUNTAIN.x + FOUNTAIN.w &&
+            worldY >= FOUNTAIN.y && worldY <= FOUNTAIN.y + FOUNTAIN.h) return true;
+        return false;
     }
-    // Fountain
-    if (worldX >= FOUNTAIN.x && worldX <= FOUNTAIN.x + FOUNTAIN.w &&
-        worldY >= FOUNTAIN.y && worldY <= FOUNTAIN.y + FOUNTAIN.h) return true;
-    // Trees (circle collision, r=24)
-    for (const t of SCENE_TREES) {
-        const dx = worldX - t.x, dy = worldY - t.y;
-        if (dx * dx + dy * dy < 24 * 24) return true;
+
+    // Check Roads
+    for (const r of ROADS) {
+        if (worldX >= r.x && worldX <= r.x + r.w &&
+            worldY >= r.y && worldY <= r.y + r.h) return false;
     }
-    return false;
+
+    // 3. Special Case: Building Doorsteps (allow approach)
+    // Add small bufferzones front of buildings?
+    // Actually, road layout should presumably reach doors.
+    // If we rely on ROADS reaching them, we don't need this.
+
+    // 4. Default: Grass is solid
+    return true;
 }
 
 function checkTileCollision(nx, ny) {
-    const w = gameState.player.width - 2;
-    const h = gameState.player.height - 2;
+    // Smaller bounding box for leniency (16x16 at feet)
+    const padding = 8;
+    const feetY = ny + 16;
+    const w = gameState.player.width - padding * 2;
+    const h = gameState.player.height - 16 - padding;
+    const x = nx + padding;
+
     return (
-        isSolidAt(nx + 1, ny + 1) ||
-        isSolidAt(nx + w, ny + 1) ||
-        isSolidAt(nx + 1, ny + h) ||
-        isSolidAt(nx + w, ny + h)
+        isSolidAt(x, feetY) ||
+        isSolidAt(x + w, feetY) ||
+        isSolidAt(x, feetY + h) ||
+        isSolidAt(x + w, feetY + h)
     );
 }
 
@@ -968,67 +940,45 @@ function drawHUD() {
     ctx.drawImage(hudImg, icon * iconW, 0, iconW, iconH, canvas.width - 52, 8, 32, 32);
 }
 
-// ── Time Progression ──────────────────────────────────────────
-const GAME_MINS_PER_FRAME = 10 / 60;
+// ── Time Progression REMOVED ──────────────────────────────────
+// (Day/Night cycle deleted for Cozy Mode)
 
-function updateGameTime() {
-    gameState.dayNightFrameAcc += GAME_MINS_PER_FRAME;
-    if (gameState.dayNightFrameAcc >= 1) {
-        const mins = Math.floor(gameState.dayNightFrameAcc);
-        gameState.dayNightFrameAcc -= mins;
-        gameState.gameTime = (gameState.gameTime + mins) % 2400;
-        const h = Math.floor(gameState.gameTime / 100);
-        const m = gameState.gameTime % 100;
-        if (m >= 60) gameState.gameTime = ((h + 1) % 24) * 100;
-    }
-    gameState.isDay = !isNightTime();
-
-    const clockEl = document.getElementById('game-clock');
-    if (clockEl) {
-        const h = Math.floor(gameState.gameTime / 100).toString().padStart(2, '0');
-        const m = (gameState.gameTime % 100).toString().padStart(2, '0');
-        clockEl.textContent = `${h}:${m}`;
-    }
-    const btn = document.getElementById('daynight-btn');
-    if (btn) btn.textContent = isNightTime() ? '🌙' : '☀️';
-}
-
-// ── Game Loop ─────────────────────────────────────────────────
-function gameLoop() {
-    gameState.time++;
-    updateGameTime();
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBackground();
+// Game Loop
+let lastTime = 0;
+function gameLoop(timestamp) {
+    const dt = timestamp - lastTime;
+    lastTime = timestamp;
 
     if (gameState.phase === 'select') {
-        // Character select is a full-canvas overlay — no zoom
         drawCharacterSelect();
     } else {
         updatePlayer();
         updateCamera();
 
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         // ── Zoomed world rendering ───────────────────────────────────
-        // World-space draws in logical 480×320 px, scaled 2× to canvas.
         ctx.save();
         ctx.scale(ZOOM, ZOOM);
         ctx.imageSmoothingEnabled = false;
+
         drawGrass();
         drawRoads();
         drawTownSquare();
         drawDecorations();
-        renderDayTint();
+        // renderDayTint(); // No-op
         drawEntitiesSorted();
-        ctx.restore();
-        // ────────────────────────────────────────────────────
 
-        // Full-canvas overlays drawn AFTER restoring scale
-        renderDayNightCycle();
+        ctx.restore();
+
+        // ── Full-canvas overlays ─────────────────────────────────────
+        // renderDayNightCycle(); // No-op
         drawHUD();
     }
 
     requestAnimationFrame(gameLoop);
 }
+
 
 // ── Init ──────────────────────────────────────────────────────
 async function init() {
