@@ -1,129 +1,84 @@
 // ============================================================
-//  PIXEL CITY RESUME — Game Engine v4 (Fantasy RPG Map)
+//  PIXEL CITY RESUME — Game Engine v5 (Pokémon Town)
 // ============================================================
 
-// ── Constants ────────────────────────────────────────────────
-const TILE_SIZE = 48;   // world-space px per tile
-const ZOOM = 2;    // pixel scale — chunky retro look
-const MAP_COLS = 50;
-const MAP_ROWS = 40;
-const WORLD_W = MAP_COLS * TILE_SIZE;  // 2400
-const WORLD_H = MAP_ROWS * TILE_SIZE;  // 1920
+// ── Constants ─────────────────────────────────────────────────
+const ZOOM = 2;       // pixel scale (chunky retro)
+const WORLD_W = 2000;    // world-space px wide
+const WORLD_H = 2000;    // world-space px tall
 const PLAYER_SPEED = 3;
-const INTERACT_DIST = 100; // px in world-space
+const INTERACT_DIST = 120;    // px – distance to trigger prompt
 
-// ── Tile IDs ─────────────────────────────────────────────────
-const T = {
-    PARK: 0,  // lush grass (default)
-    PATH: 1,  // dirt winding path
-    TREE: 2,  // solid tree (impassable)
-    FLOWER: 3,  // decorative flower (passable)
-    WATER: 4,  // lake / pond (impassable)
-    BENCH: 5,  // bench (impassable)
-    // Building marker — footprint is impassable, sprite drawn separately
-    BLDG: 6,
-};
-
-// ── Tile solid set ────────────────────────────────────────────
-const SOLID_TILES = new Set([T.TREE, T.WATER, T.BENCH, T.BLDG]);
-
-// ── Tile solid colours (fallback + ground fills) ─────────────
-const TILE_COLOR = {
-    [T.PARK]: '#3a7a2a',  // vibrant green grass
-    [T.PATH]: '#b8945a',  // sandy dirt path
-    [T.TREE]: '#1e5c1e',  // dark tree canopy
-    [T.FLOWER]: '#3a7a2a',  // same grass base
-    [T.WATER]: '#2a6ab5',  // lake blue
-    [T.BENCH]: '#5a3a1a',  // bench brown
-    [T.BLDG]: '#2a2a3a',  // placeholder (buildings drawn separately)
-};
-
-// ── CITY_MAP (50 cols × 40 rows) ─────────────────────────────
-// P=grass  D=dirt-path  T=tree  F=flower  W=water  B=building-footprint
-// 80% nature / 20% building.
-// Buildings are NOT drawn from this array — they are large sprites rendered
-// separately by drawBuildings(). The BLDG tile only marks impassable ground.
-const P = T.PARK, D = T.PATH, TR = T.TREE, FL = T.FLOWER, W = T.WATER, B = T.BLDG, BN = T.BENCH;
-
-/* prettier-ignore */
-const CITY_MAP = [
-// col: 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49
-/* r0*/[P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/* r1*/[P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, TR, P, P],
-/* r2*/[P, P, P, P, P, P, P, P, P, P, P, FL, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/* r3*/[P, P, B, B, B, P, P, P, P, P, P, P, P, D, D, D, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/* r4*/[P, TR, B, B, B, P, P, P, P, P, P, P, D, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P],
-/* r5*/[P, P, B, B, B, P, P, P, P, P, P, P, D, P, P, P, P, D, P, P, W, W, W, P, P, P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/* r6*/[P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, D, P, P, W, W, W, W, P, P, P, P, P, P, P, B, B, B, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P],
-/* r7*/[P, P, P, P, P, P, FL, P, P, P, P, P, D, P, P, P, P, D, P, P, W, W, W, W, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/* r8*/[P, P, P, TR, P, P, P, P, P, P, P, P, D, P, P, P, P, D, P, P, P, P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P],
-/* r9*/[P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, FL, P, P, P, P, P, P],
-/*r10*/[P, P, P, P, P, FL, P, P, P, P, P, D, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r11*/[P, P, TR, P, P, P, P, P, P, P, D, P, P, P, P, P, P, D, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P],
-/*r12*/[P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r13*/[P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, W, W, W, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, FL, P, P, P],
-/*r14*/[P, P, TR, P, P, P, P, P, D, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, W, W, W, W, P, P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r15*/[P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, W, W, W, W, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r16*/[P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, D, D, D, D, D, D, D, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P],
-/*r17*/[P, P, P, P, TR, P, P, D, P, P, P, P, FL, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r18*/[P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P],
-/*r19*/[P, P, TR, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, B, B, B, P, P, P, TR, P, P, P],
-/*r20*/[P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P],
-/*r21*/[P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P, P, P, P, P, P, P, FL, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r22*/[P, P, P, P, P, P, B, B, B, D, D, D, D, D, D, D, D, D, D, D, D, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r23*/[P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P],
-/*r24*/[P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, W, W, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r25*/[P, P, P, P, P, TR, P, P, P, P, P, P, P, FL, P, P, P, P, P, P, P, D, P, P, P, W, W, W, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, FL, P, P, P, P, P, P],
-/*r26*/[P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r27*/[P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P],
-/*r28*/[P, P, P, P, P, P, P, P, P, P, P, P, FL, P, P, P, P, P, P, P, D, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r29*/[P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P, P, P, P, P, P, P],
-/*r30*/[P, P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r31*/[P, P, P, P, P, P, P, P, P, FL, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, FL, P, P, P],
-/*r32*/[P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P, P],
-/*r33*/[P, P, TR, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r34*/[P, P, P, P, P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P, P, P, P, P, TR, P, P],
-/*r35*/[P, P, P, P, P, P, B, B, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, TR, P, P, P, P, P, P, B, B, B, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r36*/[P, P, P, P, P, P, B, B, P, FL, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r37*/[P, P, P, TR, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, FL, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r38*/[P, P, P, P, P, P, P, P, P, P, D, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
-/*r39*/[P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P, P],
+// ── Road geometry ──────────────────────────────────────────────
+// Each entry is { x, y, w, h } in world-space pixels.
+// Roads are walkable (gray asphalt). Grass outside is also walkable.
+const ROADS = [
+    // ── Main north-south spine ────────────────────────────────
+    { x: 940, y: 0, w: 120, h: 920 },   // N arm (to plaza)
+    { x: 940, y: 1120, w: 120, h: 880 },   // S arm (from plaza)
+    // ── Main east-west spine ─────────────────────────────────
+    { x: 0, y: 940, w: 920, h: 120 },   // W arm
+    { x: 1120, y: 940, w: 880, h: 120 },   // E arm
+    // ── NW branch (→ University) ──────────────────────────────
+    { x: 272, y: 940, w: 668, h: 120 },   // horizontal segment already covered by W arm, extra width
+    { x: 272, y: 272, w: 120, h: 668 },   // vertical down to W arm
+    // ── NE branch (→ Skyscraper) ──────────────────────────────
+    { x: 1060, y: 272, w: 668, h: 120 },   // horizontal
+    { x: 1608, y: 272, w: 120, h: 668 },   // vertical
+    // ── SW branch (→ Cottage) ─────────────────────────────────
+    { x: 272, y: 1060, w: 668, h: 120 },
+    { x: 272, y: 1060, w: 120, h: 668 },
+    // ── SE branch (→ Tech Lab) ────────────────────────────────
+    { x: 1060, y: 1060, w: 668, h: 120 },
+    { x: 1608, y: 1060, w: 120, h: 668 },
 ];
 
-// ── Hotspot / Building Definitions ───────────────────────────
-// tileX/Y = top-left tile of the building footprint.
-// tileW/H = footprint size in tiles (drawn as one large sprite).
-// sheetCol/Row = which cell of city_day.png (5-col × 3-row sheet) to use.
-const HOTSPOT_DEFS = [
+// ── Town plaza (cobblestone square around fountain) ────────────
+const PLAZA = { x: 880, y: 880, w: 240, h: 240 };
+
+// ── Building / hotspot definitions ────────────────────────────
+// x, y = world-space top-left corner.  w, h = size in px.
+// sheetQ = quadrant of building_sprites.png (0=TL,1=TR,2=BL,3=BR).
+const SCENE_BUILDINGS = [
     {
-        id: 'education', tileX: 2, tileY: 3, tileW: 3, tileH: 3,
-        sheetCol: 0, sheetRow: 0, label: 'EDUCATION', icon: '🎓', color: '#ff006e'
+        id: 'education', label: 'EDUCATION', icon: '🎓', color: '#ff006e',
+        x: 80, y: 80, w: 192, h: 192, sheetQ: 0,
     },
     {
-        id: 'experience', tileX: 31, tileY: 4, tileW: 3, tileH: 3,
-        sheetCol: 1, sheetRow: 0, label: 'EXPERIENCE', icon: '💼', color: '#00f5ff'
+        id: 'experience', label: 'EXPERIENCE', icon: '💼', color: '#00f5ff',
+        x: 1728, y: 80, w: 192, h: 192, sheetQ: 1,
     },
     {
-        id: 'about', tileX: 6, tileY: 20, tileW: 3, tileH: 3,
-        sheetCol: 2, sheetRow: 0, label: 'ABOUT ME', icon: '👤', color: '#b967ff'
+        id: 'about', label: 'ABOUT ME', icon: '👤', color: '#b967ff',
+        x: 80, y: 1728, w: 192, h: 192, sheetQ: 2,
     },
     {
-        id: 'skills', tileX: 40, tileY: 18, tileW: 3, tileH: 3,
-        sheetCol: 3, sheetRow: 0, label: 'SKILLS', icon: '🛠️', color: '#ffea00'
+        id: 'skills', label: 'SKILLS', icon: '🛠️', color: '#ffea00',
+        x: 1728, y: 1728, w: 192, h: 192, sheetQ: 3,
     },
     {
-        id: 'contact', tileX: 6, tileY: 35, tileW: 2, tileH: 2,
-        sheetCol: 4, sheetRow: 0, label: 'CONTACT', icon: '📧', color: '#00f5ff'
+        id: 'contact', label: 'CONTACT', icon: '📧', color: '#00f5ff',
+        x: 904, y: 80, w: 192, h: 192, sheetQ: 1,   // reuse skyscraper
     },
     {
-        id: 'fun', tileX: 33, tileY: 33, tileW: 3, tileH: 3,
-        sheetCol: 1, sheetRow: 1, label: 'FUN FACTS', icon: '⭐', color: '#ff9500'
+        id: 'fun', label: 'FUN FACTS', icon: '⭐', color: '#ff9500',
+        x: 904, y: 1728, w: 192, h: 192, sheetQ: 2,   // reuse cottage
     },
     {
-        id: 'projects', tileX: 33, tileY: 33, tileW: 3, tileH: 3,
-        sheetCol: 2, sheetRow: 1, label: 'PROJECTS', icon: '💻', color: '#b967ff'
+        id: 'projects', label: 'PROJECTS', icon: '💻', color: '#b967ff',
+        x: 1728, y: 904, w: 192, h: 192, sheetQ: 3,   // reuse lab
     },
 ];
+
+// ── Nature scatter (seeded, world-space pixel centres) ───────
+// Generated once at runtime in initializeScene().
+let SCENE_TREES = [];   // { x, y } — collision circle r=28
+let SCENE_FLOWERS = [];   // { x, y, hue }
+
+// ── Fountain (impassable centrepiece) ─────────────────────────
+const FOUNTAIN = { x: 904, y: 904, w: 192, h: 192 };
+
+// (Old tile system removed — replaced by SCENE-based rendering)
 
 // ── Asset Loader ──────────────────────────────────────────────
 class AssetLoader {
@@ -151,10 +106,10 @@ const assets = new AssetLoader();
 const gameState = {
     phase: 'select',
     player: {
-        x: 17 * TILE_SIZE,   // near centre of winding path
-        y: 22 * TILE_SIZE,
-        width: TILE_SIZE,
-        height: TILE_SIZE,
+        x: 1000 - 16,  // start at town centre
+        y: 1150,       // just south of fountain (on road)
+        width: 32,
+        height: 32,
         speed: PLAYER_SPEED,
         direction: 'down',
         isMoving: false,
@@ -164,7 +119,7 @@ const gameState = {
         gender: 'male',
     },
     selectHover: -1,
-    camera: { x: 0, y: 0, tx: 0, ty: 0 },  // tx/ty = lerp targets
+    camera: { x: 0, y: 0 },
     keys: {},
     mobileKeys: {},
     hotspots: [],
@@ -175,7 +130,6 @@ const gameState = {
     isDay: true,
     time: 0,
     dayNightFrameAcc: 0,
-    decorations: [],    // pre-scattered flowers/rocks
 };
 
 // ── Canvas ────────────────────────────────────────────────────
@@ -190,46 +144,72 @@ const LOGICAL_H = canvas.height / ZOOM;  // 320
 ctx.imageSmoothingEnabled = false;
 
 // ── Hotspot / Building Initialisation ────────────────────────
-function initializeHotspots() {
-    gameState.hotspots = HOTSPOT_DEFS.map(def => ({
+function initializeScene() {
+    // Build hotspots from SCENE_BUILDINGS (world-space coords already set)
+    gameState.hotspots = SCENE_BUILDINGS.map(def => ({
         ...def,
-        x: def.tileX * TILE_SIZE,
-        y: def.tileY * TILE_SIZE,
-        width: def.tileW * TILE_SIZE,
-        height: def.tileH * TILE_SIZE,
+        width: def.w,
+        height: def.h,
         type: 'building',
     }));
 
-    // Stamp BLDG tiles into CITY_MAP for each building footprint
-    for (const def of HOTSPOT_DEFS) {
-        for (let dy = 0; dy < def.tileH; dy++) {
-            for (let dx = 0; dx < def.tileW; dx++) {
-                const row = def.tileY + dy;
-                const col = def.tileX + dx;
-                if (row >= 0 && row < MAP_ROWS && col >= 0 && col < MAP_COLS) {
-                    CITY_MAP[row][col] = T.BLDG;
-                }
+    // Seed deterministic pseudo-random trees + flowers in "green zones"
+    const rng = (n) => { let x = Math.sin(n + 1) * 73856; return x - Math.floor(x); };
+    SCENE_TREES = [];
+    SCENE_FLOWERS = [];
+    const DANGER_MARGIN = 80; // keep nature away from buildings
+    const ROAD_W = 120;
+
+    function inGreenZone(x, y) {
+        // Must be inside world
+        if (x < 20 || y < 20 || x > WORLD_W - 20 || y > WORLD_H - 20) return false;
+        // Not in plaza
+        if (x > PLAZA.x - 30 && x < PLAZA.x + PLAZA.w + 30 &&
+            y > PLAZA.y - 30 && y < PLAZA.y + PLAZA.h + 30) return false;
+        // Not in fountain
+        if (x > FOUNTAIN.x - 20 && x < FOUNTAIN.x + FOUNTAIN.w + 20 &&
+            y > FOUNTAIN.y - 20 && y < FOUNTAIN.y + FOUNTAIN.h + 20) return false;
+        // Not inside a building (+margin)
+        for (const b of SCENE_BUILDINGS) {
+            if (x > b.x - DANGER_MARGIN && x < b.x + b.w + DANGER_MARGIN &&
+                y > b.y - DANGER_MARGIN && y < b.y + b.h + DANGER_MARGIN) return false;
+        }
+        // Not on a road
+        for (const r of ROADS) {
+            if (x > r.x - 20 && x < r.x + r.w + 20 &&
+                y > r.y - 20 && y < r.y + r.h + 20) return false;
+        }
+        return true;
+    }
+
+    // Place 60 trees
+    for (let i = 0; i < 60; i++) {
+        let attempts = 0;
+        while (attempts++ < 50) {
+            const tx = Math.floor(rng(i * 3) * (WORLD_W - 80)) + 40;
+            const ty = Math.floor(rng(i * 3 + 1) * (WORLD_H - 80)) + 40;
+            if (inGreenZone(tx, ty)) {
+                const sz = 44 + Math.floor(rng(i * 3 + 2) * 20);
+                SCENE_TREES.push({ x: tx, y: ty, size: sz });
+                break;
             }
         }
     }
 
-    // Scatter decorations (seeded pseudo-random flowers + rocks)
-    gameState.decorations = [];
-    const seed = (n) => { let x = Math.sin(n) * 43758; return x - Math.floor(x); };
-    let si = 0;
-    for (let row = 0; row < MAP_ROWS; row++) {
-        for (let col = 0; col < MAP_COLS; col++) {
-            if (CITY_MAP[row][col] === T.PARK && seed(si++) > 0.92) {
-                gameState.decorations.push({
-                    x: col * TILE_SIZE + TILE_SIZE * 0.1,
-                    y: row * TILE_SIZE + TILE_SIZE * 0.1,
-                    type: seed(si++) > 0.5 ? 'flower' : 'shrub',
-                    hue: Math.floor(seed(si++) * 360),
-                });
-            } else { si++; }
+    // Place 40 flowers
+    for (let i = 0; i < 40; i++) {
+        let attempts = 0;
+        while (attempts++ < 50) {
+            const fx = Math.floor(rng(i * 5 + 200) * (WORLD_W - 60)) + 30;
+            const fy = Math.floor(rng(i * 5 + 201) * (WORLD_H - 60)) + 30;
+            if (inGreenZone(fx, fy)) {
+                SCENE_FLOWERS.push({ x: fx, y: fy, hue: Math.floor(rng(i * 5 + 202) * 360) });
+                break;
+            }
         }
     }
 }
+
 
 // ── Resume Data ───────────────────────────────────────────────
 async function loadResumeData() {
@@ -239,7 +219,7 @@ async function loadResumeData() {
     } catch {
         gameState.resumeData = getFallbackData();
     }
-    initializeHotspots();
+    initializeScene();
 }
 
 function getFallbackData() {
@@ -304,180 +284,225 @@ function renderDayTint() {
     ctx.restore();
 }
 
-// ── Tile Rendering ──────────────────────────────────────────────
-function drawTileMap() {
+// ── Layer 0: Grass background ─────────────────────────────────
+function drawGrass() {
     const cam = gameState.camera;
-    const sheetKey = isNightTime() ? 'cityNight' : 'cityDay';
-    const img = assets.images[sheetKey];
+    // Base grass fill (whole logical viewport)
+    ctx.fillStyle = '#4a9a30';
+    ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
 
-    // Viewport culling with 1-tile buffer
-    const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE) - 1);
-    const endCol = Math.min(MAP_COLS - 1, Math.ceil((cam.x + LOGICAL_W) / TILE_SIZE) + 1);
-    const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE) - 1);
-    const endRow = Math.min(MAP_ROWS - 1, Math.ceil((cam.y + LOGICAL_H) / TILE_SIZE) + 1);
+    // Subtle darker vertical grass-stripe texture for depth
+    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+    const stripeW = 8;
+    const startS = Math.floor(cam.x / stripeW) * stripeW - cam.x;
+    for (let sx = startS; sx < LOGICAL_W; sx += stripeW * 2) {
+        ctx.fillRect(sx, 0, stripeW, LOGICAL_H);
+    }
+}
 
-    // Sheet cell size (5 cols × 3 rows)
-    const sw = img ? img.naturalWidth / 5 : 0;
-    const sh = img ? img.naturalHeight / 3 : 0;
-    // Tree sprite is at sheet [col2, row2]
-    const treeSrcX = 2 * sw;
-    const treeSrcY = 2 * sh;
-
-    for (let row = startRow; row <= endRow; row++) {
-        for (let col = startCol; col <= endCol; col++) {
-            const tileId = CITY_MAP[row][col];
-            const dx = col * TILE_SIZE - cam.x;
-            const dy = row * TILE_SIZE - cam.y;
-
-            if (tileId === T.BLDG) {
-                // Building footprint — grass base so it blends at edges
-                ctx.fillStyle = '#3a7a2a';
-                ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-
-            } else if (tileId === T.TREE && img) {
-                // Grass base first, then tree canopy from sprite sheet
-                ctx.fillStyle = '#3a7a2a';
-                ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-                ctx.drawImage(img, treeSrcX, treeSrcY, sw, sh, dx, dy, TILE_SIZE, TILE_SIZE);
-
-            } else if (tileId === T.PATH) {
-                // Dirt path — tan fill with darker edge
-                ctx.fillStyle = '#c8a05a';
-                ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-                ctx.fillStyle = '#a07840';
-                ctx.fillRect(dx, dy, TILE_SIZE, 2);
-                ctx.fillRect(dx, dy + TILE_SIZE - 2, TILE_SIZE, 2);
-
-            } else if (tileId === T.WATER) {
-                // Water — animated blue shimmer
-                const t = Date.now() / 1200;
-                const shimmer = Math.sin(t + col * 0.5 + row * 0.7) * 0.07;
-                ctx.fillStyle = `rgba(42,${106 + Math.floor(shimmer * 40)},181,1)`;
-                ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-                // Highlight lines
-                ctx.fillStyle = 'rgba(160,210,255,0.25)';
-                ctx.fillRect(dx + 4, dy + 8, TILE_SIZE - 8, 3);
-                ctx.fillRect(dx + 10, dy + 18, TILE_SIZE - 16, 3);
-
-            } else if (tileId === T.FLOWER) {
-                // Same as grass — tiny dot drawn in drawDecorations
-                ctx.fillStyle = '#3d8030';
-                ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-
-            } else {
-                // Default: solid grass fill (PARK + BENCH + anything unknown)
-                ctx.fillStyle = TILE_COLOR[tileId] || '#3a7a2a';
-                ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
+// ── Layer 1: Roads ────────────────────────────────────────────
+function drawRoads() {
+    const cam = gameState.camera;
+    for (const r of ROADS) {
+        const dx = r.x - cam.x, dy = r.y - cam.y;
+        // Asphalt base
+        ctx.fillStyle = '#6e6e6e';
+        ctx.fillRect(dx, dy, r.w, r.h);
+        // Dark border lines (1px each side)
+        ctx.fillStyle = '#4a4a4a';
+        if (r.w > r.h) { // horizontal road — borders on top+bottom
+            ctx.fillRect(dx, dy, r.w, 3);
+            ctx.fillRect(dx, dy + r.h - 3, r.w, 3);
+            // Dashed centre line
+            ctx.fillStyle = '#d4c84a';
+            const dashLen = 14, gap = 10;
+            const startX = Math.floor((cam.x - r.x) / (dashLen + gap)) * (dashLen + gap) + r.x;
+            for (let x = startX; x < r.x + r.w; x += dashLen + gap) {
+                const lx = x - cam.x;
+                if (lx + dashLen < 0 || lx > LOGICAL_W) continue;
+                ctx.fillRect(lx, dy + r.h / 2 - 1, dashLen, 2);
+            }
+        } else { // vertical road — borders on left+right
+            ctx.fillRect(dx, dy, 3, r.h);
+            ctx.fillRect(dx + r.w - 3, dy, 3, r.h);
+            ctx.fillStyle = '#d4c84a';
+            const dashLen = 14, gap = 10;
+            const startY = Math.floor((cam.y - r.y) / (dashLen + gap)) * (dashLen + gap) + r.y;
+            for (let y = startY; y < r.y + r.h; y += dashLen + gap) {
+                const ly = y - cam.y;
+                if (ly + dashLen < 0 || ly > LOGICAL_H) continue;
+                ctx.fillRect(dx + r.w / 2 - 1, ly, 2, dashLen);
             }
         }
     }
 }
 
-// ── Decoration Rendering (flowers / shrubs scattered on grass) ──
+// ── Layer 2: Town square plaza + fountain ─────────────────────
+function drawTownSquare() {
+    const cam = gameState.camera;
+    const px = PLAZA.x - cam.x, py = PLAZA.y - cam.y;
+    const fx = FOUNTAIN.x - cam.x, fy = FOUNTAIN.y - cam.y;
+
+    // Cobblestone plaza fill
+    const TILE = 16;
+    for (let row = 0; row < Math.ceil(PLAZA.h / TILE); row++) {
+        for (let col = 0; col < Math.ceil(PLAZA.w / TILE); col++) {
+            const shade = (row + col) % 2 === 0 ? '#c8b878' : '#b8a868';
+            ctx.fillStyle = shade;
+            ctx.fillRect(px + col * TILE, py + row * TILE, TILE, TILE);
+        }
+    }
+    ctx.strokeStyle = '#a09050';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(px, py, PLAZA.w, PLAZA.h);
+
+    // Fountain sprite (or fallback blue circle)
+    const fountainImg = assets.images['fountain'];
+    if (fountainImg) {
+        ctx.drawImage(fountainImg, fx, fy, FOUNTAIN.w, FOUNTAIN.h);
+    } else {
+        ctx.fillStyle = '#4488cc';
+        ctx.beginPath();
+        ctx.arc(fx + FOUNTAIN.w / 2, fy + FOUNTAIN.h / 2,
+            FOUNTAIN.w / 2 - 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#aaddff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    }
+}
+
+// ── Layer 3a: Nature decorations (trees + flowers) ────────────
 function drawDecorations() {
     const cam = gameState.camera;
-    for (const d of gameState.decorations) {
-        const sx = d.x - cam.x;
-        const sy = d.y - cam.y;
-        if (sx < -TILE_SIZE || sx > LOGICAL_W + TILE_SIZE) continue;
-        if (sy < -TILE_SIZE || sy > LOGICAL_H + TILE_SIZE) continue;
+    const natImg = assets.images['natureSheet'];
+    // Nature sheet proportions: left 2/3 = tree (approximately)
+    const treeW = natImg ? natImg.naturalWidth * 0.65 : 64;
+    const treeH = natImg ? natImg.naturalHeight : 64;
+    const flowX = natImg ? natImg.naturalWidth * 0.65 : 0;
+    const flowW = natImg ? natImg.naturalWidth * 0.35 : 32;
+    const flowH = natImg ? natImg.naturalHeight * 0.5 : 32;
 
-        if (d.type === 'flower') {
-            // Small colourful flower dot
-            ctx.fillStyle = `hsl(${d.hue},90%,60%)`;
-            ctx.beginPath();
-            ctx.arc(sx + TILE_SIZE * 0.5, sy + TILE_SIZE * 0.7, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#ffffffbb';
-            ctx.beginPath();
-            ctx.arc(sx + TILE_SIZE * 0.5, sy + TILE_SIZE * 0.7, 2, 0, Math.PI * 2);
-            ctx.fill();
+    // Flowers (no collision, drawn under trees)
+    for (const f of SCENE_FLOWERS) {
+        const sx = f.x - cam.x, sy = f.y - cam.y;
+        if (sx < -32 || sx > LOGICAL_W + 32 || sy < -32 || sy > LOGICAL_H + 32) continue;
+        if (natImg) {
+            ctx.drawImage(natImg, flowX, 0, flowW, flowH, sx - 10, sy - 10, 20, 20);
         } else {
-            // Small shrub bump
-            ctx.fillStyle = '#2a6020';
+            ctx.fillStyle = `hsl(${f.hue},90%,60%)`;
             ctx.beginPath();
-            ctx.ellipse(sx + TILE_SIZE * 0.5, sy + TILE_SIZE * 0.6, 9, 7, 0, 0, Math.PI * 2);
+            ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // Trees (sorted front-to-back already by initializeScene seed order)
+    for (const t of SCENE_TREES) {
+        const sx = t.x - cam.x, sy = t.y - cam.y;
+        if (sx < -64 || sx > LOGICAL_W + 64 || sy < -64 || sy > LOGICAL_H + 64) continue;
+        const size = t.size || 52;
+        if (natImg) {
+            ctx.drawImage(natImg, 0, 0, treeW, treeH, sx - size / 2, sy - size * 0.7, size, size);
+        } else {
+            ctx.fillStyle = '#2a7a1a';
+            ctx.beginPath();
+            ctx.arc(sx, sy - 8, size / 2, 0, Math.PI * 2);
             ctx.fill();
         }
     }
 }
 
-// ── Building Rendering ─────────────────────────────────────────────
-// Each building is ONE large sprite cropped from the sheet,
-// drawn to cover its full tileW × tileH tile footprint.
-function drawBuildings() {
+// ── Layer 3b: Buildings (drawn in Y-sort with player) ─────────
+// Call drawEntitiesSorted() from the game loop instead of calling
+// drawBuildings() and drawPlayer() separately.
+function drawEntitiesSorted() {
     const cam = gameState.camera;
-    const sheetKey = isNightTime() ? 'cityNight' : 'cityDay';
-    const img = assets.images[sheetKey];
+    const bldSheet = assets.images['buildingSheet'];
+    // sheet is 2×2, each cell = half the image
+    const cellW = bldSheet ? bldSheet.naturalWidth / 2 : 192;
+    const cellH = bldSheet ? bldSheet.naturalHeight / 2 : 192;
 
-    gameState.hotspots.forEach(hs => {
-        const sx = hs.x - cam.x;
-        const sy = hs.y - cam.y;
+    // Build list: buildings + player, each tagged with a sortY = bottom edge
+    const entities = [];
 
-        // Cull: completely off-screen
-        if (sx + hs.width < 0 || sx > LOGICAL_W) return;
-        if (sy + hs.height < 0 || sy > LOGICAL_H) return;
+    // Add buildings
+    for (const b of gameState.hotspots) {
+        entities.push({ type: 'building', data: b, sortY: b.y + b.height });
+    }
+    // Add player
+    const p = gameState.player;
+    entities.push({ type: 'player', data: p, sortY: p.y + p.height });
 
-        const isNearest = gameState.nearestHotspot === hs;
+    // Sort ascending by bottom edge (painter's algorithm)
+    entities.sort((a, b) => a.sortY - b.sortY);
 
-        // Draw the building sprite scaled to cover full footprint
-        if (img) {
-            const sw = img.naturalWidth / 5;
-            const sh = img.naturalHeight / 3;
-            const srcX = hs.sheetCol * sw;
-            const srcY = hs.sheetRow * sh;
-            // Slight pulse scale when player is nearby
-            const scale = isNearest ? 1.04 : 1.0;
-            const w = hs.width * scale;
-            const h = hs.height * scale;
-            const offX = (w - hs.width) / 2;
-            const offY = (h - hs.height) / 2;
-            ctx.save();
-            if (isNearest) {
-                ctx.shadowColor = hs.color;
-                ctx.shadowBlur = 20;
-            }
-            ctx.drawImage(img, srcX, srcY, sw, sh, sx - offX, sy - offY, w, h);
-            ctx.restore();
+    for (const e of entities) {
+        if (e.type === 'player') {
+            _drawPlayer();
         } else {
-            // Fallback coloured rectangle
-            ctx.fillStyle = hs.color + '44';
-            ctx.fillRect(sx, sy, hs.width, hs.height);
-        }
+            const hs = e.data;
+            const sx = hs.x - cam.x;
+            const sy = hs.y - cam.y;
+            if (sx + hs.width < 0 || sx > LOGICAL_W) continue;
+            if (sy + hs.height < 0 || sy > LOGICAL_H) continue;
 
-        // Neon outline
-        ctx.save();
-        ctx.strokeStyle = isNearest ? hs.color : hs.color + '66';
-        ctx.lineWidth = isNearest ? 2.5 : 1.2;
-        if (isNearest) {
-            ctx.shadowColor = hs.color;
-            ctx.shadowBlur = 16;
-        }
-        ctx.strokeRect(sx, sy, hs.width, hs.height);
-        ctx.restore();
+            const isNearest = gameState.nearestHotspot === hs;
 
-        // Floating label above building
-        ctx.save();
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.font = '11px monospace';
-        ctx.fillText(hs.icon, sx + hs.width / 2, sy - 8);
-        ctx.font = '5px "Press Start 2P", monospace';
-        ctx.fillStyle = hs.color;
-        ctx.shadowColor = hs.color;
-        ctx.shadowBlur = isNearest ? 8 : 2;
-        ctx.fillText(hs.label, sx + hs.width / 2, sy - 2);
-        ctx.restore();
-    });
+            // Draw building sprite from sheet quadrant
+            if (bldSheet) {
+                const qCol = hs.sheetQ % 2;
+                const qRow = Math.floor(hs.sheetQ / 2);
+                const srcX = qCol * cellW;
+                const srcY = qRow * cellH;
+                const scale = isNearest ? 1.05 : 1.0;
+                const dw = hs.width * scale;
+                const dh = hs.height * scale;
+                const offX = (dw - hs.width) / 2;
+                const offY = (dh - hs.height) / 2;
+                ctx.save();
+                if (isNearest) { ctx.shadowColor = hs.color; ctx.shadowBlur = 24; }
+                ctx.drawImage(bldSheet, srcX, srcY, cellW, cellH,
+                    sx - offX, sy - offY, dw, dh);
+                ctx.restore();
+            } else {
+                // Fallback rectangle
+                ctx.fillStyle = hs.color + '55';
+                ctx.strokeStyle = hs.color;
+                ctx.lineWidth = 2;
+                ctx.fillRect(sx, sy, hs.width, hs.height);
+                ctx.strokeRect(sx, sy, hs.width, hs.height);
+            }
+
+            // Neon outline
+            ctx.save();
+            ctx.strokeStyle = isNearest ? hs.color : hs.color + '77';
+            ctx.lineWidth = isNearest ? 2 : 1;
+            if (isNearest) { ctx.shadowColor = hs.color; ctx.shadowBlur = 14; }
+            ctx.strokeRect(sx, sy, hs.width, hs.height);
+            ctx.restore();
+
+            // Floating label
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.font = '12px monospace';
+            ctx.fillText(hs.icon, sx + hs.width / 2, sy - 8);
+            ctx.font = 'bold 6px monospace';
+            ctx.fillStyle = isNearest ? hs.color : '#ffffffcc';
+            if (isNearest) { ctx.shadowColor = hs.color; ctx.shadowBlur = 8; }
+            ctx.fillText(hs.label, sx + hs.width / 2, sy - 1);
+            ctx.restore();
+        }
+    }
 }
-
-// ── Player Rendering ──────────────────────────────────────────
+// ── Player Rendering (called from drawEntitiesSorted) ─────────
 // Sprite sheet layout: 4 cols × 4 rows
 //   Cols (direction): 0=front(down), 1=back(up), 2=left, 3=right
 //   Rows (character): 0=Player, 1=Recruiter, 2=Friend, 3=Family
 const DIR_COL = { down: 0, up: 1, left: 2, right: 3 };
 
-function drawPlayer() {
+function _drawPlayer() {
     const p = gameState.player;
     const cam = gameState.camera;
     const key = p.gender === 'female' ? 'playerFemale' : 'playerMale';
@@ -493,14 +518,14 @@ function drawPlayer() {
         const dirCol = DIR_COL[p.direction] ?? 0;
         const srcX = dirCol * cellW;
         const srcY = p.spriteRow * cellH;
-        ctx.drawImage(img, srcX, srcY, cellW, cellH, dx, dy, TILE_SIZE, TILE_SIZE);
+        ctx.drawImage(img, srcX, srcY, cellW, cellH, dx, dy, p.width, p.height);
     } else {
         // Fallback coloured block
         ctx.fillStyle = '#00f5ff';
-        ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
+        ctx.fillRect(dx, dy, p.width, p.height);
         ctx.strokeStyle = '#ff006e';
         ctx.lineWidth = 2;
-        ctx.strokeRect(dx, dy, TILE_SIZE, TILE_SIZE);
+        ctx.strokeRect(dx, dy, p.width, p.height);
     }
 
     // Neon glow outline
@@ -509,7 +534,7 @@ function drawPlayer() {
     ctx.shadowBlur = 8;
     ctx.strokeStyle = '#00f5ff44';
     ctx.lineWidth = 1;
-    ctx.strokeRect(dx, dy, TILE_SIZE, TILE_SIZE);
+    ctx.strokeRect(dx, dy, p.width, p.height);
     ctx.restore();
 }
 
@@ -632,10 +657,22 @@ function roundRect(ctx, x, y, w, h, r) {
 
 // ── Collision Detection ───────────────────────────────────────
 function isSolidAt(worldX, worldY) {
-    const col = Math.floor(worldX / TILE_SIZE);
-    const row = Math.floor(worldY / TILE_SIZE);
-    if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS) return true;
-    return SOLID_TILES.has(CITY_MAP[row][col]);
+    // World boundary
+    if (worldX < 0 || worldY < 0 || worldX >= WORLD_W || worldY >= WORLD_H) return true;
+    // Buildings
+    for (const b of SCENE_BUILDINGS) {
+        if (worldX >= b.x && worldX <= b.x + b.w &&
+            worldY >= b.y && worldY <= b.y + b.h) return true;
+    }
+    // Fountain
+    if (worldX >= FOUNTAIN.x && worldX <= FOUNTAIN.x + FOUNTAIN.w &&
+        worldY >= FOUNTAIN.y && worldY <= FOUNTAIN.y + FOUNTAIN.h) return true;
+    // Trees (circle collision, r=24)
+    for (const t of SCENE_TREES) {
+        const dx = worldX - t.x, dy = worldY - t.y;
+        if (dx * dx + dy * dy < 24 * 24) return true;
+    }
+    return false;
 }
 
 function checkTileCollision(nx, ny) {
@@ -976,11 +1013,12 @@ function gameLoop() {
         ctx.save();
         ctx.scale(ZOOM, ZOOM);
         ctx.imageSmoothingEnabled = false;
-        drawTileMap();
+        drawGrass();
+        drawRoads();
+        drawTownSquare();
         drawDecorations();
         renderDayTint();
-        drawBuildings();
-        drawPlayer();
+        drawEntitiesSorted();
         ctx.restore();
         // ────────────────────────────────────────────────────
 
@@ -998,8 +1036,9 @@ async function init() {
 
     try {
         await assets.loadAll({
-            cityDay: 'assets/city_day.png',
-            cityNight: 'assets/city_night.png',
+            buildingSheet: 'assets/building_sprites.png',
+            fountain: 'assets/fountain_plaza.png',
+            natureSheet: 'assets/nature_sprites.png',
             characterPortraits: 'assets/character_portraits.png',
             playerMale: 'assets/character_sprites_male.png',
             playerFemale: 'assets/character_sprites_female.png',
