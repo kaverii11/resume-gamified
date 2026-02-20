@@ -251,12 +251,13 @@ function updateCamera() {
     const cam = gameState.camera;
     const p = gameState.player;
     // Ideal camera position centres the player in the logical viewport
-    const tx = p.x + p.width / 2 - LOGICAL_W / 2;
-    const ty = p.y + p.height / 2 - LOGICAL_H / 2;
+    // Clamp the TARGET first so the lerp never chases an out-of-bounds goal
+    const tx = Math.max(0, Math.min(p.x + p.width / 2 - LOGICAL_W / 2, WORLD_W - LOGICAL_W));
+    const ty = Math.max(0, Math.min(p.y + p.height / 2 - LOGICAL_H / 2, WORLD_H - LOGICAL_H));
     // Lerp for smooth glide (0.15 = responsive but not instant)
     cam.x += (tx - cam.x) * 0.15;
     cam.y += (ty - cam.y) * 0.15;
-    // Clamp to world bounds
+    // Hard clamp as safety net — camera never reveals world edge
     cam.x = Math.max(0, Math.min(cam.x, WORLD_W - LOGICAL_W));
     cam.y = Math.max(0, Math.min(cam.y, WORLD_H - LOGICAL_H));
 }
@@ -489,7 +490,7 @@ function _drawPlayer() {
     const dy = p.y - cam.y;
 
     if (img) {
-        // Each cell in the 4×4 sheet
+        // Draw ONLY the transparent character sprite — no background fillRect
         const cellW = img.naturalWidth / 4;
         const cellH = img.naturalHeight / 4;
         const dirCol = DIR_COL[p.direction] ?? 0;
@@ -497,11 +498,10 @@ function _drawPlayer() {
         const srcY = p.spriteRow * cellH;
         ctx.drawImage(img, srcX, srcY, cellW, cellH, dx, dy, p.width, p.height);
     } else {
-        // Fallback coloured block
+        // Fallback only — no sprite loaded
         ctx.fillStyle = '#ff9f43';
         ctx.fillRect(dx, dy, p.width, p.height);
     }
-    // Debug outline removed
 }
 
 // ── Character Select Screen ───────────────────────────────────
