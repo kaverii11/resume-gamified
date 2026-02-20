@@ -13,9 +13,9 @@ const INTERACT_DIST = 120;    // px – distance to trigger prompt
 // Roads are the ONLY walkable areas.
 // Compressed layout around the central plaza (880,880 240×240).
 const ROADS = [
-    // Main Cross
-    { x: 960, y: 400, w: 80, h: 1200 },  // North-South spine (long)
-    { x: 400, y: 960, w: 1200, h: 80 },  // East-West spine (long)
+    // Main Cross — extended to world edges so road ends are never visible
+    { x: 960, y: 0, w: 80, h: 2000 },    // North-South spine (full world)
+    { x: 0, y: 960, w: 2000, h: 80 },    // East-West spine (full world)
     // Inner Ring / Building Access
     { x: 680, y: 680, w: 80, h: 640 },   // West vertical
     { x: 1240, y: 680, w: 80, h: 640 },  // East vertical
@@ -114,12 +114,12 @@ class AssetLoader {
         const id = ctx.getImageData(0, 0, c.width, c.height);
         const d = id.data;
         // Background key colour: #1a233a (R:26, G:35, B:58)
-        const BG_R = 26, BG_G = 35, BG_B = 58, TOLERANCE = 35;
+        const BG_R = 26, BG_G = 35, BG_B = 58, TOLERANCE = 50;
         for (let i = 0; i < d.length; i += 4) {
             const r = d[i], g = d[i + 1], b = d[i + 2];
             // Strip near-white backgrounds
             if (r > 220 && g > 220 && b > 220) { d[i + 3] = 0; continue; }
-            // Strip exact dark-navy background pixels (tight tolerance)
+            // Strip exact dark-navy background pixels (tolerance covers fringe/edge pixels too)
             const dist = Math.sqrt((r - BG_R) ** 2 + (g - BG_G) ** 2 + (b - BG_B) ** 2);
             if (dist < TOLERANCE) d[i + 3] = 0;
         }

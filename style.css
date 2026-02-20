@@ -41,7 +41,6 @@ body {
     max-height: 800px;
     background: #3a7a2a;
     /* Fallback grass green */
-    border: 8px solid var(--cozy-border);
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     image-rendering: pixelated;
