@@ -113,14 +113,15 @@ class AssetLoader {
         ctx.drawImage(img, 0, 0);
         const id = ctx.getImageData(0, 0, c.width, c.height);
         const d = id.data;
+        // Background key colour: #1a233a (R:26, G:35, B:58)
+        const BG_R = 26, BG_G = 35, BG_B = 58, TOLERANCE = 35;
         for (let i = 0; i < d.length; i += 4) {
             const r = d[i], g = d[i + 1], b = d[i + 2];
             // Strip near-white backgrounds
             if (r > 220 && g > 220 && b > 220) { d[i + 3] = 0; continue; }
-            // Strip dark blue/navy backgrounds (#1a233a and similar)
-            // Matches pixels that are dark overall and blue-dominant
-            const brightness = r + g + b;
-            if (brightness < 120 && b > r && b > g) { d[i + 3] = 0; }
+            // Strip exact dark-navy background pixels (tight tolerance)
+            const dist = Math.sqrt((r - BG_R) ** 2 + (g - BG_G) ** 2 + (b - BG_B) ** 2);
+            if (dist < TOLERANCE) d[i + 3] = 0;
         }
         ctx.putImageData(id, 0, 0);
         const newImg = new Image();
