@@ -114,8 +114,13 @@ class AssetLoader {
         const id = ctx.getImageData(0, 0, c.width, c.height);
         const d = id.data;
         for (let i = 0; i < d.length; i += 4) {
-            // If near white, make transparent
-            if (d[i] > 220 && d[i + 1] > 220 && d[i + 2] > 220) d[i + 3] = 0;
+            const r = d[i], g = d[i + 1], b = d[i + 2];
+            // Strip near-white backgrounds
+            if (r > 220 && g > 220 && b > 220) { d[i + 3] = 0; continue; }
+            // Strip dark blue/navy backgrounds (#1a233a and similar)
+            // Matches pixels that are dark overall and blue-dominant
+            const brightness = r + g + b;
+            if (brightness < 120 && b > r && b > g) { d[i + 3] = 0; }
         }
         ctx.putImageData(id, 0, 0);
         const newImg = new Image();
