@@ -1,144 +1,64 @@
-# 🎮 Pixel-Art City Resume
+# 🏡 Kaveri's Town: a pixel-art resume
 
-An interactive, nostalgic pixel-art city exploration game that serves as a unique web resume. Walk around a cyberpunk city at night, interact with neon-lit buildings to explore different sections of the resume.
+My resume as a tiny explorable town. Pick a character, walk around, and step into
+each building to read a section. Recruiters in a hurry can hit **📜 Quick View**
+(or "Skip the game" on the start screen) to read everything on one page.
 
-## 🌟 Features
+## Buildings
 
-- **Retro 16-bit Aesthetic**: Cyberpunk city with neon lights, inspired by Game Boy Advance / SNES era
-- **Interactive Gameplay**: Use arrow keys or WASD to move your character around the city
-- **7 Interactive Hotspots**: Each building/object reveals different resume sections
-- **Responsive Design**: Works on desktop and mobile with touch controls
-- **Smooth Animations**: Character movement, neon glow effects, and modal transitions
-- **Modal System**: Clean, pixel-art styled pop-ups for resume content
+| Building | Section |
+|---|---|
+| 🏫 University | Education |
+| 🏢 Glass office | Experience |
+| 🧪 Tech lab | Projects |
+| 🏡 Cottage (by the fountain) | About me |
+| 📚 Library | Skills |
+| 🏛️ Town hall (trophy room) | Achievements |
+| ☕ Café | Leadership |
+| 📮 Post office | Contact |
 
-## 🎯 Interactive Sections
+Each building has its own pixel-art interior (drawn in code in `interiors.js`, so it
+animates): a high-tech lab and glass office, and a cozy cottage, university, library,
+trophy room and café. The townsfolk have a few things to say too.
 
-1. **About Me** - Personal bio and summary
-2. **Experience** - Work history and achievements
-3. **Projects** - Featured portfolio projects
-4. **Skills** - Technical skills and tools
-5. **Education** - Academic background and certifications
-6. **Contact** - Get in touch information
-7. **Fun Facts** - Hobbies and interests
+## Controls
 
-## 🚀 Quick Start
+- **WASD / arrow keys** to walk, or **click/tap** anywhere to walk there
+- **SPACE / ENTER** at a door, or just **click a building** to open it
+- **ESC** closes a window · **Q** quick view · **?** help
+- Phones get an on-screen pad and an **A** button
 
-### Option 1: Open Directly
-Simply open `index.html` in a modern web browser.
+## Running it
 
-### Option 2: Local Server (Recommended)
+No build step. Open `index.html` directly, or serve the folder:
+
 ```bash
-# Using Python
-python3 -m http.server 8000
-
-# Using Node.js
-npx serve
-
-# Using PHP
-php -S localhost:8000
+python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
-Then navigate to `http://localhost:8000`
+## Editing
 
-## 🎮 Controls
+- **Resume text:** `data/resume-data.js`
+- **Town layout** (building positions, NPC lines): top of `script.js`
+- **Sprites:** the raw AI-generated sheets in `assets/*.png` are cut into clean,
+  transparent sprites in `assets/sprites/` by:
 
-### Desktop
-- **Arrow Keys** or **WASD**: Move character
-- **SPACE** or **ENTER**: Interact with nearby buildings/objects
-- **ESC** or **Click X**: Close modals
+  ```bash
+  pip install pillow numpy scipy
+  python3 tools/prep_sprites.py
+  ```
 
-### Mobile
-- **Virtual D-Pad**: Move character
-- **INTERACT Button**: Open nearby sections
-- **Touch**: Tap outside modal to close
+  The generated sprites are committed, so you only need this if you change a sheet.
 
-## 📁 Project Structure
+## Project structure
 
 ```
-pixel-city-resume/
-├── index.html          # Main HTML structure
-├── style.css           # Cyberpunk pixel-art styling
-├── script.js           # Game engine and logic
-├── data/
-│   └── resume-data.json  # Resume content (EDIT THIS!)
-├── assets/
-│   ├── city-tileset.png  # Generated city assets
-│   └── ui-elements.png   # UI components
-└── README.md
+index.html              page shell, HUD, modal
+style.css               cozy pixel UI
+script.js               game engine (rendering, movement, collisions, modals)
+interiors.js            building interiors (procedural pixel art)
+data/resume-data.js     resume content
+assets/                 raw sprite sheets
+assets/sprites/         cleaned sprites used by the game
+tools/prep_sprites.py   sheet → sprite cutter
 ```
-
-## ✏️ Customization
-
-### Update Resume Content
-Edit `data/resume-data.json` with your own information:
-- Personal details (name, email, links)
-- Work experience
-- Projects
-- Skills
-- Education
-- Fun facts
-
-### Modify Hotspot Positions
-In `script.js`, find the `initializeHotspots()` function and adjust x, y coordinates.
-
-### Change Color Scheme
-In `style.css`, modify CSS variables:
-```css
-:root {
-    --neon-pink: #ff006e;
-    --neon-cyan: #00f5ff;
-    --neon-yellow: #ffea00;
-    --neon-purple: #b967ff;
-}
-```
-
-## 🌐 Deployment
-
-### Vercel
-```bash
-npm i -g vercel
-vercel
-```
-
-### Netlify
-Drag and drop the entire folder to [Netlify Drop](https://app.netlify.com/drop)
-
-### GitHub Pages
-1. Push to GitHub repository
-2. Go to Settings → Pages
-3. Select branch and root folder
-4. Your site will be live at `https://username.github.io/repo-name`
-
-## 🛠️ Technologies
-
-- **Pure HTML5** - Structure
-- **CSS3** - Styling with cyberpunk aesthetics
-- **Vanilla JavaScript** - Game engine and interactions
-- **HTML5 Canvas** - Rendering and animations
-- **Google Fonts** - Press Start 2P pixel font
-
-## 📱 Browser Support
-
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## 🎨 Design Inspiration
-
-- Retro 16-bit games (Pokémon, Zelda)
-- Cyberpunk aesthetics
-- Neon-lit cityscapes
-- Interactive portfolio experiences
-
-## 📝 License
-
-Free to use and modify for personal portfolios.
-
-## 🤝 Credits
-
-Created with AI assistance for an interactive resume experience.
-
----
-
-**Enjoy exploring the city! 🌃**

@@ -3,67 +3,82 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Kaveri Sharma - Interactive Resume</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="description" content="Kaveri Sharma's resume as a little pixel-art town. Walk around and visit each building, or open the quick view.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div id="game-container">
+        <canvas id="game-canvas" aria-label="Pixel-art town. Each building opens a section of the resume."></canvas>
+
+        <!-- Loading -->
         <div id="loading-screen">
             <div class="pixel-loader"></div>
-            <p class="pixel-text">LOADING CITY...</p>
+            <p class="pixel-text">LOADING TOWN...</p>
         </div>
 
-        <div id="hud">
-            <div class="hud-item">
+        <!-- Character select -->
+        <div id="select-screen" class="hidden">
+            <h1 class="pixel-title">KAVERI'S TOWN</h1>
+            <p class="select-sub">Pick someone to explore my resume with</p>
+            <div id="char-grid"></div>
+            <button id="skip-btn" class="link-btn">Skip the game: show me the resume →</button>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div class="hud-item hud-name">
                 <span class="pixel-text">KAVERI SHARMA</span>
             </div>
-            <div class="hud-item">
-                <span class="pixel-text">Use ← → ↑ ↓ or WASD to move</span>
+            <div class="hud-item" id="visited" title="Buildings visited">
+                <span class="pixel-text">0/0 VISITED</span>
             </div>
-            <div class="hud-item">
-                <span class="pixel-text">Press SPACE to interact</span>
-            </div>
-            <button id="mute-btn" class="pixel-btn">🔊</button>
-            <button id="daynight-btn" class="pixel-btn" title="Skip 6 hours">🌙</button>
-            <span id="game-clock" class="pixel-text"
-                style="font-size:8px;padding:4px 8px;border:1px solid #00f5ff;color:#00f5ff">06:00</span>
+            <div class="hud-spacer"></div>
+            <button id="quick-btn" class="pixel-btn" title="Read the whole resume on one page">📜 QUICK VIEW</button>
+            <button id="help-btn" class="pixel-btn" title="How to play" aria-label="How to play">?</button>
         </div>
 
-        <canvas id="game-canvas"></canvas>
+        <!-- Context prompt -->
+        <div id="interaction-prompt" class="hidden" role="status">
+            <span class="pixel-text"></span>
+        </div>
 
-        <!-- Mobile Controls -->
+        <!-- Toast -->
+        <div id="toast" class="hidden" role="status"></div>
+
+        <!-- Touch controls -->
         <div id="mobile-controls">
             <div class="dpad">
-                <button class="dpad-btn up" data-key="up">▲</button>
-                <button class="dpad-btn down" data-key="down">▼</button>
-                <button class="dpad-btn left" data-key="left">◄</button>
-                <button class="dpad-btn right" data-key="right">►</button>
+                <button class="dpad-btn up" data-key="up" aria-label="Up">▲</button>
+                <button class="dpad-btn down" data-key="down" aria-label="Down">▼</button>
+                <button class="dpad-btn left" data-key="left" aria-label="Left">◀</button>
+                <button class="dpad-btn right" data-key="right" aria-label="Right">▶</button>
             </div>
-            <button class="action-btn" data-key="space">INTERACT</button>
+            <button class="action-btn" data-key="space">A</button>
         </div>
 
-        <!-- Modal System -->
+        <!-- Fade used when entering / leaving buildings -->
+        <div id="fade"></div>
+
+        <!-- Modal -->
         <div id="modal-overlay" class="hidden">
-            <div id="modal-container">
+            <div id="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-title">
                 <div class="modal-header">
                     <h2 id="modal-title" class="pixel-text"></h2>
-                    <button id="modal-close" class="pixel-btn close-btn">✕</button>
+                    <button id="modal-close" class="close-btn" aria-label="Close">✕</button>
                 </div>
                 <div id="modal-content" class="modal-body"></div>
             </div>
         </div>
-
-        <!-- Interaction Prompt -->
-        <div id="interaction-prompt" class="hidden">
-            <span class="pixel-text">Press SPACE</span>
-        </div>
     </div>
 
+    <script src="data/resume-data.js"></script>
+    <script src="interiors.js"></script>
     <script src="script.js"></script>
 </body>
 

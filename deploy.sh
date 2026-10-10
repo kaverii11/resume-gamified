@@ -7,7 +7,7 @@ echo ""
 
 # Check if we're in the right directory
 if [ ! -f "index.html" ]; then
-    echo "❌ Error: Please run this script from the pixel-city-resume directory"
+    echo "❌ Error: Please run this script from the project root"
     exit 1
 fi
 
