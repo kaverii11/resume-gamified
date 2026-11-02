@@ -97,8 +97,8 @@ window.RESUME_DATA = {
             tech: 'PyTorch, TensorFlow/Keras, OpenCV',
             link: 'https://github.com/kaverii11/marine-debris_cnn',
             highlights: [
-                'Marine debris detection: adapted an ImageNet-pretrained ResNet-18 to 11-band Sentinel-2 satellite imagery, with Grad-CAM heatmaps implemented from scratch',
-                'Fire detection: trained a CNN on 999 images with data augmentation, reaching 95% validation accuracy',
+                'Marine debris detection: ResNet-18 adapted to 11-band Sentinel-2 satellite images, 87% test accuracy (vs a 72% baseline) and debris F1 0.78; Grad-CAM shows it focuses on the debris',
+                'Fire detection: a pretrained MobileNetV2 reaches 97% test accuracy and a CNN built from scratch 94% (vs a 75% baseline)',
                 'Inventory counting (Stanford paper replication): SVMs on HOG/blob/PCA features vs fine-tuned ResNet-18/34 on Amazon bin photos',
             ],
         },
