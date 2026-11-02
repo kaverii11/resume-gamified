@@ -14,8 +14,8 @@ window.RESUME_DATA = {
 
     summary:
         'Final-year Computer Science student at PES University (graduating 2027) who builds across ' +
-        'full-stack, ML and GenAI: from a RAG-powered support platform to GPU-accelerated ' +
-        'geospatial routing that placed 2nd nationally at the AMD Slingshot Challenge.',
+        'full-stack, ML and GenAI: from a RAG-powered support platform and a regulatory knowledge-graph ' +
+        'agent to a geospatial planning tool that placed 2nd nationally at the AMD Slingshot Challenge.',
 
     education: [
         {
@@ -43,33 +43,63 @@ window.RESUME_DATA = {
 
     projects: [
         {
-            name: 'OptiSolve',
-            tech: 'React, FastAPI, ChromaDB, Groq/SambaNova',
-            link: 'https://github.com/kaverii11/Optisolve',
+            name: 'OptiSolve + OptiSolve-Docs',
+            tech: 'Python, FastAPI, React, ChromaDB, Groq',
+            link: 'https://github.com/kaverii11/optisolve-docs',
             highlights: [
-                '3-tier customer support orchestration platform routing tickets across auto-resolve, AI-assisted and escalate tiers based on AI confidence scores and real-time sentiment analysis',
-                'RAG pipeline (ChromaDB, Groq Llama 3.3 for drafts, SambaNova/Llama 3.1 for sentiment scoring) with a human-in-the-loop engine updating the knowledge base from agent corrections, giving a 30–40% reduction in MTTR',
-                'Pre-submission "Gatekeeper" layer that analyzes drafts in real time and suggests fixes before ticket creation, achieving 20–30% ticket deflection',
+                'RAG support-ticket platform that scores confidence from knowledge-base match strength and LLM sentiment analysis: Tier 1 auto-resolves, Tier 2 goes to human-in-the-loop review, Tier 3 escalates',
+                'Self-learning loop saves every human correction back into the knowledge base, so similar tickets later auto-resolve; it adapts to any platform in any sector',
+                'Document-parsing pipeline (PDF/DOCX/TXT) and a cross-encoder reranker; evaluated on a held-out set with zero wrong auto-resolves on 27 near-topic and off-topic questions, backed by 19 unit tests',
+            ],
+        },
+        {
+            name: 'SEBI Knowledge Graph Agent',
+            tech: 'Python, LangGraph, OpenAI, Neo4j, Streamlit',
+            link: 'https://github.com/kaverii11/Knowledge-Graph-Agent-',
+            highlights: [
+                'Turns unstructured SEBI regulatory circulars (PDFs) into a Neo4j knowledge graph of circulars, clauses, and the acts they reference or modify',
+                'LangGraph pipeline: regex catches standard circular IDs, GPT-4o-mini extracts the rest as Pydantic-validated structured output, and anything below 0.7 confidence is re-routed to GPT-4o',
+                'Text-to-Cypher Q&A using the live graph inventory, read-only queries, embedding-based entity merging, and a precision/recall/F1 eval script',
+            ],
+        },
+        {
+            name: 'HeartGuard AI (Capstone, journal paper in preparation)',
+            tech: 'Scikit-learn, XGBoost, Kitware Pulse, Docker, BigQuery',
+            link: 'https://github.com/Mrunmayi019/M2K-HF-PULSE/commits?author=kaverii11',
+            highlights: [
+                'Personalized digital twin that flags early heart-failure decline from daily vitals in a continuous day-to-day loop and runs forward projection',
+                'Random Forest classifier sorts each day into 5 clinical scenarios at 91.3% held-out accuracy; the Pulse physiology engine simulates the patient\'s heart to give a risk score and a 4-stage NYHA class (I–IV)',
+                'Pulled 11,837 MIMIC-IV hospital admissions with BigQuery; fixed a scoring bug that was inflating severity error, cutting MAE 34x (0.271 down to 0.008)',
+            ],
+        },
+        {
+            name: 'Aymora (AI Matchmaking App)',
+            tech: 'TypeScript, Fastify, PostgreSQL/pgvector, Redis, Gemini',
+            link: 'https://github.com/kaverii11/aymora',
+            highlights: [
+                'Gemini turns questionnaire answers into a structured profile and an embedding; users are matched by pgvector cosine similarity plus rule-based re-ranking',
+                'Matching runs as BullMQ background jobs on Redis with retries and exponential backoff',
+                'Razorpay payments with HMAC-SHA256 webhook verification, rate limiting, moderation and data deletion; deployed on Render + Supabase',
             ],
         },
         {
             name: 'CityOS (Spatial Logistics Engine)',
-            tech: 'Python, React, AMD ROCm, Sentinel-2, OSM',
+            tech: 'Python, React, NetworkX, OpenStreetMap, Sentinel-2',
             link: 'https://github.com/kaverii11/Spatial-Engine',
             highlights: [
-                'GovTech spatial logistics engine using AMD-accelerated graph routing across 300,000+ street nodes to minimize urban inequality (Spatial Gini Coefficient), accelerating computations 4,064x (14 hrs down to 12 sec) on AMD ROCm GPUs',
-                'Replaced outdated census data with Sentinel-2 satellite imagery and OpenStreetMap to map informal settlements using true walkable street distances',
-                'React live dashboard with 5-second GPU-accelerated re-optimization (8.5x faster than CPU), generalized to healthcare, fire stations and warehouse siting across any searchable city',
+                'Decides where a city should build its next facility (school, hospital, fire station or logistics hub) by finding neighborhoods outside every existing facility\'s coverage radius',
+                'Geocodes any city in the world and runs Dijkstra shortest-path routing on its real OpenStreetMap street network',
+                'Mapped neighborhoods from Sentinel-2 imagery via NDVI (vegetation) and NDBI (built-up) indices plus a Random Forest',
             ],
         },
         {
-            name: 'Personalized Digital Twin for Heart Failure Prediction',
-            tech: 'Kitware Pulse, Docker, XGBoost',
-            link: 'https://github.com/Mrunmayi019/M2K-HF-PULSE/commits?author=kaverii11',
+            name: 'Computer Vision Projects',
+            tech: 'PyTorch, TensorFlow/Keras, OpenCV',
+            link: 'https://github.com/kaverii11/marine-debris_cnn',
             highlights: [
-                'Heart-failure decompensation monitoring system integrating the Kitware Pulse physiology engine in a Dockerized pipeline, translating patient vitals (HR, SpO2, BP, RR) into simulated trajectories via a rule-based clinical triage layer',
-                'Interpretable HF staging and risk-scoring model (LOW/MODERATE/HIGH across NYHA stages A–D) with 7/14/30-day risk trajectory forecasting',
-                'Currently authoring a research paper formalizing this interpretable risk-scoring methodology for peer-reviewed publication',
+                'Marine debris detection: adapted an ImageNet-pretrained ResNet-18 to 11-band Sentinel-2 satellite imagery, with Grad-CAM heatmaps implemented from scratch',
+                'Fire detection: trained a CNN on 999 images with data augmentation, reaching 95% validation accuracy',
+                'Inventory counting (Stanford paper replication): SVMs on HOG/blob/PCA features vs fine-tuned ResNet-18/34 on Amazon bin photos',
             ],
         },
     ],
@@ -81,18 +111,18 @@ window.RESUME_DATA = {
             detail: 'Won INR 3,00,000, ranking 2nd among 40,000+ registrations and 4,000+ competing prototypes for CityOS, a scalable geospatial AI solution.',
         },
         {
-            title: 'Shortlisted, Atos SRiJAN Hackathon',
-            date: 'May 2026',
-            detail: "1 of only 5 finalist teams for OptiSolve (2 university teams, rest startups). Presented to Atos's UKI & India leadership.",
+            title: 'Finalist (1 of 5 teams), Atos SRiJAN Hackathon',
+            date: 'Sep 2026',
+            detail: "1 of only 5 finalist teams for OptiSolve (2 university teams, rest startups). Pitched to Atos's UKI & India leadership, who showed interest in adoption and internship consideration.",
         },
     ],
 
     skills: {
         'Languages': ['Python', 'C++', 'Java', 'SQL', 'JavaScript', 'TypeScript'],
-        'Data & ML': ['PyTorch/Keras', 'TensorFlow', 'Pandas', 'NumPy', 'Scikit-learn'],
-        'Full Stack': ['Next.js', 'React', 'REST APIs', 'JSON', 'Data Visualization'],
-        'Tools & Databases': ['MySQL', 'Firebase Firestore', 'Git/GitHub', 'Docker'],
-        'GenAI & NLP': ['LLMs', 'RAG', 'NLP', 'Prompt Engineering', 'Hugging Face'],
+        'Data & ML': ['PyTorch/Keras', 'TensorFlow', 'OpenCV', 'Scikit-learn', 'XGBoost', 'Pandas', 'NumPy'],
+        'Full Stack': ['Next.js', 'React', 'FastAPI', 'Fastify', 'Node.js', 'REST APIs'],
+        'Tools & Databases': ['PostgreSQL/pgvector', 'Neo4j', 'Redis', 'MySQL', 'Firebase Firestore', 'Git/GitHub', 'Docker'],
+        'GenAI & NLP': ['LLMs', 'RAG', 'LangGraph', 'Embeddings', 'NLP', 'Prompt Engineering'],
     },
 
     leadership: [

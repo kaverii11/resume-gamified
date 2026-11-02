@@ -101,7 +101,7 @@ const NPC_DEFS = [
     {
         type: 'elder', x: 712, y: 790, dir: 'right',
         lines: [
-            'In my day that routing job took 14 hours. CityOS does it in 12 seconds on AMD GPUs.',
+            'CityOS can plan new facilities for any city in the world, using its real street map.',
             'The lab up north has all the projects.',
         ],
     },
