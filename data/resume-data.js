@@ -10,6 +10,8 @@ window.RESUME_DATA = {
         github: 'https://github.com/kaverii11',
         linkedin: 'https://www.linkedin.com/in/kaveri-sharma-aiml/',
         portfolio: 'https://portfolio-kaverii11.vercel.app/',
+        // Same PDF as the portfolio's download button, so there is one resume to keep updated
+        resume: 'https://portfolio-kaverii11.vercel.app/resume.pdf',
     },
 
     summary:
@@ -54,12 +56,12 @@ window.RESUME_DATA = {
         },
         {
             name: 'SEBI Knowledge Graph Agent',
-            tech: 'Python, LangGraph, OpenAI, Neo4j, Streamlit',
+            tech: 'Python, LangGraph, MCP, MLflow, Pydantic, Neo4j, Docker',
             link: 'https://github.com/kaverii11/Knowledge-Graph-Agent-',
             highlights: [
-                'Turns unstructured SEBI regulatory circulars (PDFs) into a Neo4j knowledge graph of circulars, clauses, and the acts they reference or modify',
-                'LangGraph pipeline: regex catches standard circular IDs, GPT-4o-mini extracts the rest as Pydantic-validated structured output, and anything below 0.7 confidence is re-routed to GPT-4o',
-                'Text-to-Cypher Q&A using the live graph inventory, read-only queries, embedding-based entity merging, and a precision/recall/F1 eval script',
+                'An AI agent that turns SEBI regulatory circulars (PDFs) into a Neo4j knowledge graph of the acts, regulations and circulars each one references or modifies, and answers questions in plain English',
+                'LangGraph pipeline with Pydantic-validated structured output; low-confidence results are re-checked by a stronger model. An MCP server with 6 read-only tools lets Claude or any agent query the graph, and MLflow traces every step',
+                'Evals on 3 real 2026 circulars (hand-labelled answer key, LLM-as-a-judge, tool selection, pytest regression gate): fixing what they caught raised extraction F1 from 0.74 to 0.94; 88% of test questions answered correctly',
             ],
         },
         {
@@ -80,6 +82,26 @@ window.RESUME_DATA = {
                 'Gemini turns questionnaire answers into a structured profile and an embedding; users are matched by pgvector cosine similarity plus rule-based re-ranking',
                 'Matching runs as BullMQ background jobs on Redis with retries and exponential backoff',
                 'Razorpay payments with HMAC-SHA256 webhook verification, rate limiting, moderation and data deletion; deployed on Render + Supabase',
+            ],
+        },
+        {
+            name: 'shoe-check (Blurry Photo Detector)',
+            tech: 'PyTorch, OpenCV, ONNX, Gradio',
+            link: 'https://github.com/kaverii11/shoe-check',
+            highlights: [
+                'Flags blurry or out-of-focus sneaker photos taken on a phone, comparing classic computer vision with a small CNN',
+                'MobileNetV3-Small trained only on synthetic blur scored 95.6% on 1,050 real camera photos and 96.7% on 30 real sneaker photos; classic OpenCV sharpness scores reached 89% but missed over a quarter of motion blur',
+                'Exported to ONNX for edge devices: 3.1 MB, 5 ms per photo on one CPU thread; int8 quantization tested and documented',
+            ],
+        },
+        {
+            name: 'AgriConnect (Farm-to-Consumer Marketplace)',
+            tech: 'Java 17, Spring Boot, JPA/Hibernate, MySQL, Maven',
+            link: 'https://github.com/kaverii11/Agriconnect',
+            highlights: [
+                'Farmers sell produce directly to buyers, who can order together for bulk discounts or subscribe to weekly boxes',
+                'Spring Boot backend with 22 REST endpoints and a MySQL database, built on SOLID principles',
+                'Design patterns: Strategy (pricing rules), Observer (group-order alerts), Factory (subscription boxes), Facade (checkout as one all-or-nothing transaction)',
             ],
         },
         {

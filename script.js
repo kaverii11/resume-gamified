@@ -1050,7 +1050,7 @@ function sectionHtml(id) {
             return `<p class="entry-title">${esc(d.personal.name)}</p>
                 <p class="meta">${esc(d.personal.title)} · ${esc(d.personal.location)}</p>
                 <p>${esc(d.summary)}</p>
-                <p>${link(d.personal.portfolio, 'Portfolio')} · ${link(d.personal.github, 'GitHub')} · ${link(d.personal.linkedin, 'LinkedIn')}</p>`;
+                <p>${link(d.personal.portfolio, 'Portfolio')} · ${link(d.personal.github, 'GitHub')} · ${link(d.personal.linkedin, 'LinkedIn')}${d.personal.resume ? ` · ${link(d.personal.resume, 'Resume (PDF)')}` : ''}</p>`;
         case 'education':
             return d.education.map(e => `<div class="entry">
                 <p class="entry-title">${esc(e.degree)}</p>
@@ -1088,6 +1088,7 @@ function sectionHtml(id) {
                     <li>LinkedIn: ${link(d.personal.linkedin)}</li>
                     <li>GitHub: ${link(d.personal.github)}</li>
                     <li>Portfolio: ${link(d.personal.portfolio)}</li>
+                    ${d.personal.resume ? `<li>Resume: ${link(d.personal.resume, 'download PDF')}</li>` : ''}
                     <li>Based in ${esc(d.personal.location)}</li>
                 </ul>`;
     }
