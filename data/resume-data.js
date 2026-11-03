@@ -6,7 +6,7 @@ window.RESUME_DATA = {
         name: 'Kaveri Sharma',
         title: 'B.Tech Computer Science, PES University',
         location: 'Bengaluru, Karnataka',
-        email: 'kaveri05sharma@gmail.com',
+        email: 'kaverisharma05@gmail.com',
         github: 'https://github.com/kaverii11',
         linkedin: 'https://www.linkedin.com/in/kaveri-sharma-aiml/',
         portfolio: 'https://portfolio-kaverii11.vercel.app/',
